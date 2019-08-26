@@ -2,7 +2,7 @@
 name = "Rose"
 
 # Is theme light or dark?
-dark = true
+light = true
 
 # Primary
 primary = "rgb(251, 191, 183)"
@@ -10,9 +10,9 @@ primary = "rgb(251, 191, 183)"
 # Menu
 menu_primary = "rgb(247, 247, 247)"
 menu_text = "#000"
-menu_text_active = "rgb(25, 25, 25)"
+menu_text_active = "#FFF"
 menu_title = "#000"
 
 # Home sections
-home_section_odd = "#FFF"
+home_section_odd = "#282a36"
 home_section_even = "rgb(234, 242, 250)"
