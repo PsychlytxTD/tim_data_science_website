@@ -20,7 +20,7 @@
 
 [[main]]
   name = "Psychology"
-  url = "#therapy"
+  url = "#psychology_landing/"
   weight = 2
 
 #[[main]]
@@ -49,3 +49,5 @@
     name = "CV"
     url = "post/cv.pdf"
     weight = 5
+
+
