@@ -20,7 +20,7 @@
 
 [[main]]
   name = "Psychology"
-  url = "#psychology_landing/"
+  url = "psychology_landing/"
   weight = 2
 
 #[[main]]
