@@ -157,12 +157,13 @@ sharing = true
   #   2: Commento (https://commento.io)
   engine = 1
 
-  # Which page types are commentable?
+  # Which p
+page types are commentable?
   commentable = {page = true, post = true, docs = true, project = true, publication = true, talk = true}
 
   # Configuration of Disqus.
   [comments.disqus]
-    shortname = ""  # Paste the shortname from your Disqus dashboard.
+    shortname = "timothydeitz-com"  # Paste the shortname from your Disqus dashboard.
     show_count = true  # Show comment count in page header? (true/false)
 
 # Search.
