@@ -24,7 +24,7 @@ title = "Effective Psychology"
   #gradient_end = "#2b94c3"
   
   # Background image.
-   image =  "headers/grass.jpg"   # Name of image in `static/img/`.
+   image =  "headers/grass_sky.jpg"   # Name of image in `static/img/`.
   # image_darken = 0.6  # Darken the image? Range 0-1 where 0 is transparent and 1 is opaque.
 
   # Text color (true=light or false=dark).
@@ -45,18 +45,17 @@ title = "Effective Psychology"
 
 +++
 
-**"There is a candle in your heart, ready to be kindled.
-There is a void in your soul, ready to be filled.
-You feel it, don?t you?"** - Rumi
+**"I know you?re tired but come, this is the way."** - Rumi
+<br/>
+<br/>
 
-
-This page is dedicated to Effective Psychology, a private psychology practice established by Tim in January 2019 and situated south of Melbourne on the Mornington Peninsula.  
+This page is about **Effective Psychology**, a private psychology practice established by Tim in January 2019 and situated south of Melbourne on the Mornington Peninsula.  
 
 
 Having come this far, I congratulate you. Many people suffer silently and could reach a happier place, but choose not to.  
 
 
-So welcome!
+Welcome.
 
 
 
