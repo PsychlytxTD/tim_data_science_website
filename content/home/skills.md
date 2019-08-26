@@ -3,7 +3,7 @@
 widget = "featurette"  # See https://sourcethemes.com/academic/docs/page-builder/
 headless = true  # This file represents a page section.
 active = true  # Activate this widget? true/false
-weight = 30  # Order that this section will appear.
+weight = 5  # Order that this section will appear.
 
 title = "Skills"
 subtitle = ""
@@ -17,19 +17,42 @@ subtitle = ""
 [[feature]]
   icon = "r-project"
   icon_pack = "fab"
-  name = "R"
-  description = "90%"
+  name = "R programming & reporting"
+  description = "tidyverse + R Markdown"
   
+  
+ [[feature]]
+  icon = "laptop"
+  icon_pack = "fas"
+  name = "App Development"
+  description = "Shiny + Docker"
+  
+
 [[feature]]
   icon = "chart-line"
   icon_pack = "fas"
-  name = "Statistics"
-  description = "100%"  
+  name = "Data Visualisation"
+  description = "ggplot2 + plotly"
+  
   
 [[feature]]
-  icon = "camera-retro"
+  icon = "chart-pie"
   icon_pack = "fas"
-  name = "Photography"
-  description = "10%"
+  name = "Data Wrangling & Statistics"
+  description = "R + SQL + Python + Git + Shell + SPSS + Excel"
+  
+ [[feature]]
+  icon = "clipboard-list"
+  icon_pack = "fas"
+  name = "Psychometrics"
+  description = "Lavaan + AMOS"
+  
+   [[feature]]
+  icon = "user-cog"
+  icon_pack = "fas"
+  name = "Psychology/Behaviour"
+  description = "Clinical Assessment + Decision Making + Intensive Short-Term Dynamic Psychotherapy (ISTDP) "
+
+
 
 +++
