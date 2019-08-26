@@ -18,14 +18,14 @@ subtitle = ""
   icon = "hands-helping"
   icon_pack = "fas"
   name = "Psychotherapy"
-  description = "Cognitive Behaviour Therapy (CBT) + Acceptance & Commitment Therapy (ACT) + Intensive Short-Term Dynamic Psychotherapy (ISTDP)
+  description = "Cognitive Behaviour Therapy (CBT) + Acceptance & Commitment Therapy (ACT) + Intensive Short-Term Dynamic Psychotherapy (ISTDP)"
   
   
  [[feature]]
   icon = "clipboard-check"
   icon_pack = "fas"
   name = "Psychological Assessment"
-  description = "Collaborative Understanding + Conceptualisation "
+  description = "Shared Understanding + Conceptualisation "
   
 
 +++
