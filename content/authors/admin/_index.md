@@ -76,5 +76,5 @@ user_groups:
 - Researchers
 - Visitors
 ---
-Tim is a Clinical Psychologist who is passionate about using data science to propel social and psychological change. He is the founder of **Psychlytx**, a company that looks for ways to help companies and individuals become more efficient, healthy, and grounded through data.
+Tim is a Clinical Psychologist who is passionate about using data science to propel social and psychological change. He is the founder of **Psychlytx**, a startup that looks for ways to help healthcare organisations become more efficient, healthy, and grounded through data.
 

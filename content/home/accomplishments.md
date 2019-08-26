@@ -26,7 +26,7 @@ date_format = "Jan 2006"
   certificate_url = "https://datacamp.com"
   date_start = "2019-03-01"
   date_end = "2019-08-05"
-  description = "Successful course completion: 94 hours + 22 modules"
+  description = "Near completion: 94 hours + 22 modules"
 
 [[item]]
   organization = "DataCamp"
