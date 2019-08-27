@@ -18,7 +18,7 @@ subtitle = ""
   icon = "hands-helping"
   icon_pack = "fas"
   name = "Psychotherapy"
-  description = "Cognitive Behaviour Therapy (CBT) + Acceptance & Commitment Therapy (ACT) + Intensive Short-Term Dynamic Psychotherapy (ISTDP)"
+  description = "Cognitive Behaviour Therapy (CBT) + Intensive Short-Term Dynamic Psychotherapy (ISTDP) + Acceptance & Commitment Therapy (ACT) + Mindfulness "
   
   
  [[feature]]

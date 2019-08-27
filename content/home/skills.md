@@ -50,8 +50,8 @@ subtitle = ""
    [[feature]]
   icon = "user-cog"
   icon_pack = "fas"
-  name = "Psychology/Behaviour"
-  description = "Clinical Assessment + Decision Making + Intensive Short-Term Dynamic Psychotherapy (ISTDP) "
+  name = "Psychology"
+  description = "Behaviour + Decision-Making "
 
 
 
