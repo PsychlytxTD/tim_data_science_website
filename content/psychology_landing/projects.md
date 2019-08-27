@@ -3,10 +3,10 @@
 widget = "portfolio"  # See https://sourcethemes.com/academic/docs/page-builder/
 headless = true  # This file represents a page section.
 active = true  # Activate this widget? true/false
-weight = 2  # Order that this section will appear.
+weight = 1  # Order that this section will appear.
 
-title = "Problems Treated"
-subtitle = ""
+title = "Welcome to Effective Psychology"
+subtitle = "It's great that you've made here. Here are some difficulties I can help with..."
 
 [content]
   # Page type to display. E.g. project.
@@ -24,6 +24,10 @@ subtitle = ""
  # [[content.filter_button]]
    # name = "All"
     #tag = "*"
+    
+    [[content.filter_button]]
+    name = "Relationships"
+    tag = "Relationships"
   
   [[content.filter_button]]
     name = "Depression"
@@ -32,19 +36,15 @@ subtitle = ""
    [[content.filter_button]]
     name = "Anxiety"
     tag = "Anxiety"
-    
-     [[content.filter_button]]
-    name = "Trauma"
-    tag = "Trauma"
-    
+        
      [[content.filter_button]]
     name = "OCD"
     tag = "OCD"
-  
-   [[content.filter_button]]
-    name = "Relationships"
-    tag = "Relationships"
     
+    [[content.filter_button]]
+    name = "Existential Issues"
+    tag = "Existential Issues"
+
     
   
 [design]
@@ -56,7 +56,7 @@ subtitle = ""
   #   2 = Compact
   #   3 = Card
   #   5 = Showcase
-  view = 3
+  view = 5
 
   # For Showcase view, flip alternate rows?
   flip_alt_rows = false

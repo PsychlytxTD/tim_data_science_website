@@ -3,9 +3,9 @@
 widget = "hero"  # See https://sourcethemes.com/academic/docs/page-builder/
 headless = true  # This file represents a page section.
 active = true  # Activate this widget? true/false
-weight = 1 # Order that this section will appear.
+weight = 2 # Order that this section will appear.
 
-title = "Effective Psychology"
+title = ""
 
 # Hero image (optional). Enter filename of an image in the `static/img/` folder.
 #hero_media = "hero-academic.png"
@@ -24,7 +24,7 @@ title = "Effective Psychology"
   #gradient_end = "#2b94c3"
   
   # Background image.
-   image =  "headers/grass_sky.jpg"   # Name of image in `static/img/`.
+   image =  "headers/grass_wind.jpg"   # Name of image in `static/img/`.
   # image_darken = 0.6  # Darken the image? Range 0-1 where 0 is transparent and 1 is opaque.
 
   # Text color (true=light or false=dark).
@@ -45,19 +45,10 @@ title = "Effective Psychology"
 
 +++
 
-**"I know you?re tired but come, this is the way."** - Rumi
 <br/>
 <br/>
-
-This page is about **Effective Psychology**, a private psychology practice established by Tim in January 2019 and situated south of Melbourne on the Mornington Peninsula.  
-
-
-Having come this far, I congratulate you. Many people suffer silently and could reach a happier place, but choose not to.  
-
-
-Welcome.
-
-
-
-
-
+<br/>
+<br/>
+<br/>
+<br/>
+"Until you make the unconscious conscious, it will direct your life and you will call it fate."  *- Carl Jung*
