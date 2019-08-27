@@ -45,10 +45,6 @@ subtitle = ""
     name = "Relationships"
     tag = "Relationships"
     
-     [[content.filter_button]]
-    name = "Persistent Pain"
-    tag = "Persistent Pain"
-    
     
   
 [design]
