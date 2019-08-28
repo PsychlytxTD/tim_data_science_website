@@ -44,3 +44,5 @@ title = "Mind creates the abyss. The heart crosses it"
   #label = "View Documentation"
 
 +++
+
+*Sri Nisargadatta Maharaj*

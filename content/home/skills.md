@@ -52,6 +52,12 @@ subtitle = ""
   icon_pack = "fas"
   name = "Psychology"
   description = "Behaviour + Decision-Making "
+  
+  [[feature]]
+  icon = "globe-europe"
+  icon_pack = "fas"
+  name = "French Language"
+  description = "Written + Spoken Fluency"
 
 
 
