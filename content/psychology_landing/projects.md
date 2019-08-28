@@ -6,7 +6,7 @@ active = true  # Activate this widget? true/false
 weight = 1  # Order that this section will appear.
 
 title = "Welcome to Effective Psychology"
-subtitle = "It's great that you've made here. Here are some difficulties I can help with..."
+subtitle = "Problems that can be helped."
 
 [content]
   # Page type to display. E.g. project.
