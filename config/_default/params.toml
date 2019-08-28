@@ -58,12 +58,12 @@ time_format = "3:04 PM"
 ############################
 
 # Enter contact details (optional). To hide a field, clear it to "".
-email = "timothydeitz@gmail.com"
+email = "tim@effectivepsych.com.au"
 phone = "0449 963 259"
 address = "18 Stanley Street, Collingwood 3066"
 
 # Office hours: use `<br>` to insert a line break, or set to "" to remove office hours
-office_hours = """Wednesday 09:00 to 17:00"""
+office_hours = """Monday-Fridayy 09:00 to 18:00"""
 
 # Enter an optional link for booking appointments (e.g. calendly.com).
 #appointment_url = "https://calendly.com"

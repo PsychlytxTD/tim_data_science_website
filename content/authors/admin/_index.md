@@ -10,7 +10,7 @@ authors:
 superuser: true
 
 # Role/position
-role: Clinical Psychologist & Data Scientist
+role: Data Scientist & Clinical Psychologist
 
 # Organizations/Affiliations
 organizations:

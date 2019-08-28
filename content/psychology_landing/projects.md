@@ -3,10 +3,10 @@
 widget = "portfolio"  # See https://sourcethemes.com/academic/docs/page-builder/
 headless = true  # This file represents a page section.
 active = true  # Activate this widget? true/false
-weight = 1  # Order that this section will appear.
+weight = 20  # Order that this section will appear.
 
-title = "Welcome to Effective Psychology"
-subtitle = "Problems that can be helped."
+title = "Welcome! Here are some problems we can assist with."
+subtitle = ""
 
 [content]
   # Page type to display. E.g. project.
@@ -26,8 +26,8 @@ subtitle = "Problems that can be helped."
     #tag = "*"
     
     [[content.filter_button]]
-    name = "Relationships"
-    tag = "Relationships"
+    name = "Relationship Problems"
+    tag = "Relationship Problems"
   
   [[content.filter_button]]
     name = "Depression"
@@ -42,8 +42,8 @@ subtitle = "Problems that can be helped."
     tag = "OCD"
     
     [[content.filter_button]]
-    name = "Existential Issues"
-    tag = "Existential Issues"
+    name = "Identity & Spiritual Concerns"
+    tag = "Identity & Spiritual Concerns"
 
     
   
