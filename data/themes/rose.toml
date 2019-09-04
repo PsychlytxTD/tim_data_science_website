@@ -1,0 +1,17 @@
+# Theme metadata
+name = "Rose"
+
+# Is theme light or dark?
+light = true
+
+# Primary
+primary = "#FFA987"
+# Menu
+menu_primary = "#D8D9BB"
+menu_text = "#4F6D7A"
+menu_text_active = "#4F6D7A"
+menu_title = "#4F6D7A"
+
+# Home sections
+home_section_odd = "#EEEEEE"
+home_section_even = "#EOD3D3"

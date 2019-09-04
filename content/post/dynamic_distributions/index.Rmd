@@ -20,6 +20,11 @@ output:
 
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE)
 
+```
+
+
+```{r echo = FALSE}
+
 library(dplyr)
 library(ggplot2)
 library(tidyr)
