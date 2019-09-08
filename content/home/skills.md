@@ -25,7 +25,7 @@ subtitle = ""
   icon = "laptop"
   icon_pack = "fas"
   name = "App Development"
-  description = "Shiny + Docker"
+  description = "Shiny + Docker + Javascript + HTML + CSS"
   
 
 [[feature]]

@@ -5,7 +5,7 @@ name = "Rose"
 light = true
 
 # Primary
-primary = "#C68A51"
+primary = "#939D89"
 # Menu
 menu_primary = "#EEEEEE"
 menu_text = "#4F6D7A"
@@ -13,5 +13,5 @@ menu_text_active = "#4F6D7A"
 menu_title = "#4F6D7A"
 
 # Home sections
-home_section_odd = "#E8DDD3"
+home_section_odd = "#FFF3EE"
 home_section_even = "#D6E5ED"
