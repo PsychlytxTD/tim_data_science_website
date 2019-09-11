@@ -5,7 +5,7 @@ headless = true  # This file represents a page section.
 active = true  # Activate this widget? true/false
 weight = 20  # Order that this section will appear.
 
-title = "Welcome! Here are some problems we can assist with."
+title = "Help is available if you are experiencing difficulties like these."
 subtitle = ""
 
 [content]
@@ -26,25 +26,36 @@ subtitle = ""
     #tag = "*"
     
     [[content.filter_button]]
-    name = "Relationship Problems"
-    tag = "Relationship Problems"
-  
-  [[content.filter_button]]
     name = "Depression"
     tag = "Depression"
   
    [[content.filter_button]]
     name = "Anxiety"
     tag = "Anxiety"
+    
+     [[content.filter_button]]
+    name = "Stress"
+    tag = "Stress"
         
      [[content.filter_button]]
     name = "OCD"
     tag = "OCD"
     
     [[content.filter_button]]
-    name = "Identity & Spiritual Concerns"
-    tag = "Identity & Spiritual Concerns"
-
+    name = "Spirituality & Identity"
+    tag = "Spirituality & Identity"
+    
+    [[content.filter_button]]
+    name = "Relationships"
+    tag = "Relationships"
+    
+     [[content.filter_button]]
+    name = "Persistent Pain"
+    tag = "Persistent Pain"
+    
+     [[content.filter_button]]
+    name = "Unexplained Medical Symptoms"
+    tag = "Unexplained Medical Symptoms"
     
   
 [design]

@@ -17,7 +17,7 @@ title = "Forms"
   #   Any HTML color name or Hex value is valid.
 
   # Background color.
-   color = "white"
+   color = "#659DBD"
   
   # Background gradient.
   #gradient_start = "#4bb4e3"

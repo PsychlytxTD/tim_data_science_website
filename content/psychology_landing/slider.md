@@ -17,7 +17,7 @@ height = ""
 # Duplicate an `[[item]]` block to add more slides.
 [[item]]
   title = "Effective Psychology"
-  content = "Schedule a session."
+  content = "Compassionate and effective care on the Mornington Peninsula"
   align = "center"  # Choose `center`, `left`, or `right`.
 
   # Overlay a color or image (optional).
@@ -29,7 +29,7 @@ height = ""
   # Call to action button (optional).
   #   Activate the button by specifying a URL and button label below.
   #   Deactivate by commenting out parameters, prefixing lines with `#`.
-  cta_label = "Get In Touch"
+  cta_label = "Say Hello"
   cta_url = "#contact"
   cta_icon_pack = "far"
   cta_icon = "paper-plane"

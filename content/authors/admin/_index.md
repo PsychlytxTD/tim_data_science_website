@@ -58,7 +58,7 @@ social:
   link: https://github.com/PsychlytxTD
 - icon: linkedin
   icon_pack: fab
-  link: https://linkedin.com/in/timothydeitz
+  link: https://www.linkedin.com/in/timothy-deitz-52a241193/
   
   
 # Link to a PDF of your resume/CV from the About widget.

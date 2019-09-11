@@ -3,6 +3,26 @@ h2,
 h3,
 h4,
 h5,
-h6 {
-  color: #4F6D7A;
+h6,
+p,
+li
+{
+  color: #FFF;
 }
+
+
+i.fa-li.fas.fa-graduation-cap
+{
+
+  color: #DAAD86;
+
+}
+
+
+div#portrait-title
+{
+  color: #FFF;
+}
+
+
+.article-title { color: #FFF;}

@@ -47,12 +47,7 @@ subtitle = ""
   name = "Psychometrics"
   description = "Lavaan + AMOS"
   
-   [[feature]]
-  icon = "user-cog"
-  icon_pack = "fas"
-  name = "Psychology"
-  description = "Behaviour + Decision-Making "
-  
+    
   [[feature]]
   icon = "globe-europe"
   icon_pack = "fas"
