@@ -15,10 +15,10 @@ output:
     toc: yes
 ---
 <style>
-div.blue { background-color:#2b3f60;}
+body.blue { background-color:#2b3f60;}
 </style>
 
-<div class = "blue">
+<body class = "blue">
 
 ##Set Up
 
@@ -286,4 +286,4 @@ The plot above is an example of Simpson's Paradox! Note how there is almost no r
 
 That's it for now. I could find very little info online about automating exploratory plots using plotly and purrr, and hope this post helps speed up your data exploration. Of course, feel free to get in touch if you have any questions.
 
-</div>
+</body>
