@@ -22,24 +22,10 @@ body.blue { background-color:#2b3f60;}
 
 <body class = "blue">
 
-```{r, echo = FALSE}
-
-knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE)
-
-```
 
 
-```{r echo = FALSE}
 
-library(dplyr)
-library(ggplot2)
-library(tidyr)
-library(broom)
-library(purrr)
-library(plotly)
-library(tibble)
 
-```
 
 
 ##Setting the Scene
@@ -51,24 +37,26 @@ When it comes to the visualisation of continuous variables, options are plentifu
 You can easily find instructions for creating such plots in R using ggplot2 or purrr. For example, below is how you would make an interactive histogram in plotly, using both the `plot_ly()` and `ggplotly()` approaches:
 
 
-```{r}
 
+```r
 #plot_ly syntax 
 
 plotly::plot_ly(mtcars, x = ~disp) %>% plotly::add_histogram() 
-
 ```
 
+preservedbdfd9328610672f
 
-```{r}
 
+
+```r
 #ggplotly syntax
 
 plot<- ggplot(mtcars, aes(x = disp)) + geom_histogram() 
 
 ggplotly(plot)
-
 ```
+
+preserve63ef512535db7102
 
 
 ##Dynamically Create Boxplots 
@@ -80,18 +68,17 @@ First, I'll write a `show_all_boxplots()` function that generates a list of boxp
 Hold on..before we go any further, I'll clean up the mtcars dataset by adding rownames as an explicit variable.
 
 
-```{r}
 
+```r
 mtcars$car_name<- rownames(mtcars)
-
 ```
 
 Right. Onwards. Below, the `show_all_boxplots()` function takes a data argument and an idenifier (categorical variable) argument, to identify individual points
 overlaid on each boxplot.
 
 
-```{r}
 
+```r
 show_all_boxplots<- function(data, identifier) {
 
   #Select only numeric data for boxplot creation
@@ -115,7 +102,6 @@ show_all_boxplots<- function(data, identifier) {
                   .y, "N outliers:", 
                    nrow(dplyr::filter(numeric_data, 
                    .x > (mean(.x) + 2 * sd(.x))))
-
 
     ))) +
 
@@ -146,24 +132,22 @@ plot_list[[i]][["x"]][["data"]][1][[1]][["marker"]][["opacity"]]<- 0
 
   return(plot_list)
 }
-
-
-
 ```
 
 
 Test the `show_all_boxplots()` function:
 
 
-```{r}
 
+```r
 boxplot_list_test<- show_all_boxplots(mtcars, identifier = "car_name")
 
 ##Pick one plot from the list to show
 
 boxplot_list_test[[1]]
-
 ```
+
+preservea09ccccc32f5a394
 
 
 ##Dynamically Create Density Plots 
@@ -173,8 +157,8 @@ are a great alternative to histograms, and make it easier to compare continuous 
 is good practice to experiment with varying binwidths for histograms, we also want to let users try different
 Gaussian kernel values with density plots - indicated by the `bw` arugment for `geom_density()`.
 
-```{r}
 
+```r
 show_all_density_plots<- function(data, gaussian_kernel = 2.5) {
 
   numeric_data<- dplyr::select_if(data, is.numeric)
@@ -200,27 +184,27 @@ show_all_density_plots<- function(data, gaussian_kernel = 2.5) {
 })
 
 }
-
 ```
 
 Test the `show_all_density_plots()` function:
 
-```{r}
 
+```r
 density_plot_list_test<- show_all_density_plots(mtcars)
 
 ##Pick a random plot from the list to show
 
 density_plot_list_test[[1]]
-
 ```
+
+preserve84dede3bc5c7e3af
 
 ##Dynamically Create Histograms 
 
 And finally, I'll write a `show_all_histograms()` function to visualise the actual counts, and not the density.
 
-```{r}
 
+```r
 show_all_histograms<- function(data) {
 
   numeric_data<- dplyr::select_if(data, is.numeric)
@@ -235,22 +219,20 @@ show_all_histograms<- function(data) {
   })
   
 }
-
-
 ```
 
 Test the `show_all_histograms()` function 
 
-```{r}
 
+```r
 histogram_plot_list_test<- show_all_histograms(mtcars)
 
 #Print a random plot from the list 
 
 histogram_plot_list_test[[7]]
-
-
 ```
+
+preserve5b11913f0601f14d
 
 ##Putting It All Together: One Function To Rule Them All
 
@@ -261,8 +243,8 @@ It would be good to be able to have the option of specifying which variables to 
 
 To do this, I write the `show_distributions()` function- hopefully the comments make the steps easier to follow: 
 
-```{r}
 
+```r
 # The `vars_to_show` argument lets the user only show a 
 #selection of variables if desired
 
@@ -307,16 +289,16 @@ show_distributions<- function(data, identifier, gaussian_kernel = 2.5,
   }
 
 }
-
 ```
 
 Finally, test the `show_distributions()` function with a selction of four variables:
 
-```{r}
 
+```r
 show_distributions(mtcars, identifier = "car_name", vars_to_show = c("mpg", "disp", "drat", "qsec"))
-
 ```
+
+preserve988d94a21e177e8a
 
 Hopefully this article gives you some idea of how to use functional programming to
 increase your visualisation efficiency in R. I'd love to hear your thoughts!
