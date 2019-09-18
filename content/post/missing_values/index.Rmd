@@ -59,7 +59,7 @@ data<- tibble::tribble(
   "GAD7", "04/02/2005",  3,       4,     uuid::UUIDgenerate(),   "f", 
   "PHQ9", "04/02/2005",  4,       2,     "",                     -98,   
   "GAD7", "09/02/2006",  1,       ".",   uuid::UUIDgenerate(),   "m",
-  "PHQ", "02/02/2003",   1,       1,     uuid::UUIDgenerate(),   -999,
+  "PHQ9", "02/02/2003",  1,       1,     uuid::UUIDgenerate(),   -999,
   "GAD7","02/03/2003",   9,       8,     uuid::UUIDgenerate(),   "f",
   "PHQ9", "N/A",         7,       8,     uuid::UUIDgenerate(),   999,
   "GAD7", "04/02/2005",  4,       7,     uuid::UUIDgenerate(),   "f",
@@ -75,11 +75,11 @@ Here's what the data looks like
 
 ```{r echo = FALSE}
 
-DT::datatable(data)
+data
 
 ```
 
-As you can tell, is a disaster in terms of consistent coding of missing values in the dataframe. A whole bunch of diffirent values have seemingly been used to denote missingness.
+As you can tell, it is a disaster in terms of consistent coding of missing values in the dataframe. A whole bunch of diffirent values have seemingly been used to denote missingness.
 
 Before doing much else, it's often a good idea to take a look at the range of unique values for each variable — this lets us identify odd values that may either be mistakes or missing value codes.
 
@@ -91,25 +91,30 @@ purrr::map(data, unique)
 
 ```
 
-Here it's easy to see that missing values have been coded with -999, -98, `.`, "N/A" and `""`, depending on the variable.
+Here it's easy to see that missing values have been coded with -999, -98, ., "N/A" and "" - depending on the variable.
 
 If we're reading the data in from a CSV, it's easy enough to specify these strings at the time of import, something like this:
 
 
-Assumeing our file is `called outcomes.csv`:
+Assuming our file is called outcomes.csv
 
-`data<- readr::read_csv("outcomes.csv", na = c("N/A", ".", "", "999", "-98"))`
+```{r echo = TRUE, eval = FALSE}
+
+data<- readr::read_csv("outcomes.csv", 
+                       na = c("N/A", ".", "", "-999", "-98"))
+
+```
 
 Of course, readr will try to guess the column types automatically when importing.
 If there are odd values in numeric columns, these will be read in as character variables and we would have to coerce them to numeric after the fact.
 
 But sometimes, depending on how/where we get our data, we don't have the option of explicitly declaring missing value codes at import time.
 
-This is where the naniar package becomes really useful. The code below will replace any of the specified codes (e.g. 999) with explicit `NA` values.
+This is where the naniar package becomes really useful. The code below will replace any of the specified codes (e.g. -999) with explicit NA values.
 
 ```{r echo = TRUE}
 
-na_vals<- c("N/A", ".", "", "999", "-98")
+na_vals<- c("N/A", ".", "", "-999", "-98")
 
 data_na<- data %>% naniar::replace_with_na_all(condition = ~.x %in% na_vals)
 
@@ -121,7 +126,7 @@ data_na
 
 As you can see, missing values are now explicit and not represented by heterogeneous digits/letterss. 
 
-Sometimes we only want to target a selection of variables, under certain conditions. This might be helpful if there are legitimate values of 999 or -98 in some columns. We could do this as follows: 
+Sometimes we only want to target a selection of variables, under certain conditions. This might be helpful if there are legitimate values of -999 or -98 in some columns. We could do this as follows: 
 
 ```{r echo = TRUE, eval = FALSE}
 
@@ -138,7 +143,8 @@ or
 
 #Only apply missing value coding to character variables
 
-data_na<- data %>% naniar::replace_with_na_if(.predicate = is.character, condition = ~.x %in% na_vals)
+data_na<- data %>% naniar::replace_with_na_if(.predicate = is.character, 
+                                              condition = ~.x %in% na_vals)
 
 ```
 
@@ -203,18 +209,22 @@ But I think it is actually easier to visualise this information graphically, so 
 all_missing<- data_na[which(case_missing_summary$n_miss != 0),]
 
 #Summarise these cases and add an identifier column (whichever you want, in thise case `id`)
-all_missing_summary<- miss_case_summary(all_missing) %>% dplyr::mutate(identifier = all_missing$id)
+all_missing_summary<- miss_case_summary(all_missing) %>% 
+  dplyr::mutate(identifier = all_missing$id)
 
 #Make the bar plot of missingness by row
 missing_by_row_plot<- ggplot(all_missing_summary, 
-                             aes(x = fct_reorder(identifier, pct_miss), y = pct_miss)) + 
-  geom_bar(stat = "identity") + coord_flip() + xlab("Case") + ylab("Percentage Missing") +
+                             aes(x = fct_reorder(identifier, pct_miss), 
+                                 y = pct_miss)) + 
+  geom_bar(stat = "identity") + coord_flip() + xlab("Case") + 
+  ylab("Percentage Missing") +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1L, scale = 1)) 
 
 #Add some plotly tooltip customisation to give extra info
-missing_by_row_plot<- missing_by_row_plot + aes(text = paste("N Missing: ", n_miss, "<br>",
-                                                             "% Missing: ", round(pct_miss, 2), "<br>",
-                                                             "Case Number:", case))
+missing_by_row_plot<- missing_by_row_plot + 
+  aes(text = paste("N Missing: ", n_miss, "<br>",
+                    "% Missing: ", round(pct_miss, 2), "<br>",
+                    "Case Number:", case))
 #Render the plot
 ggplotly(missing_by_row_plot, tooltip = "text")
 
@@ -258,12 +268,15 @@ info we added when customising the tooltip).
 ```{r echo = TRUE}
 
 missing_by_var_plot<- ggplot(missing_by_var, 
-                             aes(x = fct_reorder(variable, pct_miss), y = pct_miss)) + 
-  geom_bar(stat = "identity") + coord_flip() + xlab("Variable") + ylab("Percentage Missing") +
+                             aes(x = fct_reorder(variable, pct_miss), 
+                                 y = pct_miss)) + 
+  geom_bar(stat = "identity") + coord_flip() + xlab("Variable") + 
+  ylab("Percentage Missing") +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1L, scale = 1)) 
 
-  missing_by_var_plot<- missing_by_var_plot + aes(text = paste("N Missing: ", n_miss, "<br>",
-                                                               "% Missing: ", round(pct_miss, 2)))
+  missing_by_var_plot<- missing_by_var_plot + 
+    aes(text = paste("N Missing: ", n_miss, "<br>",
+                     "% Missing: ", round(pct_miss, 2)))
   
   ggplotly(missing_by_var_plot, tooltip = "text")
   
