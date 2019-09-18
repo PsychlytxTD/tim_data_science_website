@@ -71,7 +71,7 @@ data<- tibble::tribble(
 
 ```
 
-Here's what the data looks like
+Here's what the data look like
 
 ```{r echo = FALSE}
 
@@ -96,7 +96,7 @@ Here it's easy to see that missing values have been coded with -999, -98, ., "N/
 If we're reading the data in from a CSV, it's easy enough to specify these strings at the time of import, something like this:
 
 
-Assuming our file is called outcomes.csv
+Assuming our file is called `outcomes.csv`
 
 ```{r echo = TRUE, eval = FALSE}
 
@@ -105,7 +105,7 @@ data<- readr::read_csv("outcomes.csv",
 
 ```
 
-Of course, readr will try to guess the column types automatically when importing.
+Of course, `readr` will try to guess the column types automatically when importing.
 If there are odd values in numeric columns, these will be read in as character variables and we would have to coerce them to numeric after the fact.
 
 But sometimes, depending on how/where we get our data, we don't have the option of explicitly declaring missing value codes at import time.
@@ -124,7 +124,7 @@ data_na
 
 ```
 
-As you can see, missing values are now explicit and not represented by heterogeneous digits/letterss. 
+As you can see, missing values are now explicit and not represented by heterogeneous digits/letters. 
 
 Sometimes we only want to target a selection of variables, under certain conditions. This might be helpful if there are legitimate values of -999 or -98 in some columns. We could do this as follows: 
 
@@ -150,7 +150,7 @@ data_na<- data %>% naniar::replace_with_na_if(.predicate = is.character,
 
 ##Overviewing missingness at level of the dataframe
 
-I think it can be helpful to have mental template of exploring missing values on three levels: (1) At the level of the whole dataframe, (2) at the level of rows (i.e. cases), and (3) at the level of individual variables.
+I think it can be helpful to have mental template for exploring missing values on three levels: (1) At the level of the whole dataframe, (2) at the level of rows (i.e. cases), and (3) at the level of individual variables.
 
 Let's start with the whole dataframe. We can quickly find out how many missing values and complete values exist, as follows:
 
@@ -201,14 +201,16 @@ case_missing_summary
 
 This output tells us, for example, that case 6 has two values missing, constituting 33% missing values within his/her row (i.e. across all variables fow which he or she has data).
 
-But I think it is actually easier to visualise this information graphically, so let's do that:
+But I think it is actually easier to visualise this information graphically, so let's do that (don't forget to hover over the plot):
 
 ```{r echo = TRUE}
 
 #Filter to capture only cases with missing data
 all_missing<- data_na[which(case_missing_summary$n_miss != 0),]
 
-#Summarise these cases and add an identifier column (whichever you want, in thise case `id`)
+#Summarise these cases and add an identifier column 
+#(whichever you want, in thise case `id`)
+
 all_missing_summary<- miss_case_summary(all_missing) %>% 
   dplyr::mutate(identifier = all_missing$id)
 
