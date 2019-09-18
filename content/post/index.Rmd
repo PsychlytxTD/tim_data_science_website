@@ -1,0 +1,221 @@
+---
+title: Mastering Missing Data Analysis
+author: Timothy Deitz, Clinical Psychologist & Aspiring Data Scientist
+date: '2019-09-18'
+categories:
+  - R
+  - plotly
+  - ggplot2
+  - naniar
+tags:
+  - plotly
+  - ggplot2
+  - naniar
+output:
+  blogdown::html_page:
+    toc: yes
+---
+<style>
+body.blue { background-color:#2b3f60;}
+</style>
+
+<body class = "blue">
+
+##Set Up
+
+```{r setup, echo = TRUE, include=FALSE}
+
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(broom)
+library(forcats)
+library(purrr)
+library(plotly)
+library(tibble)
+library(naniar)
+library(visdat)
+library(DT)
+
+```
+
+
+##Setting Up
+
+Let's begin by simulating some psychological data. I've deliberately made a small dataframe so that analysis steps are easier to understand.
+Each character string in the `scale` column represents a psychological outcome measure. The PHQ9 is a depression measure, and the GAD7 is an anxiety measure. The data represent scores across these measures for different individuals at different points in time.
+
+```{r}
+
+data<- tibble::tribble(
+  
+  ~scale, ~date,        ~ score, ~pts,   ~id,                    ~sex,
+  "PHQ9", "02/02/2003",   10,      9,     "",                     "m",  
+  "GAD7","02/03/2003",   12,      11,    uuid::UUIDgenerate(),   "f",
+  "PHQ9", "01/01/2004",  8,       9,     uuid::UUIDgenerate(),   999,
+  "GAD7", "04/02/2005",  8,       ".",   uuid::UUIDgenerate(),   "m",
+  "GAD7", "04/02/2005",  3,       4,     uuid::UUIDgenerate(),   "f", 
+  "PHQ9", "04/02/2005",  4,       2,     "",                     -98,   
+  "GAD7", "09/02/2006",  1,       ".",   uuid::UUIDgenerate(),   "m",
+  "PHQ", "02/02/2003",   1,       1,     uuid::UUIDgenerate(),   -999,
+  "GAD7","02/03/2003",   9,       8,     uuid::UUIDgenerate(),   "f",
+  "PHQ9", "N/A",         7,       8,     uuid::UUIDgenerate(),   999,
+  "GAD7", "04/02/2005",  4,       7,     uuid::UUIDgenerate(),   "f",
+  "GAD7", "04/02/2005",  2,       4,     "",                     "m",
+  "PHQ9", "N/A",         8,       7,     uuid::UUIDgenerate(),   -98,
+  "GAD7", "N/A",         8,       7,     uuid::UUIDgenerate(),   "f"
+  
+)
+
+```
+
+Here's what the data looks like
+
+```{r echo = FALSE}
+
+DT::datatable(data)
+
+```
+
+As you can tell, is a disaster in terms of consistent coding of missing values in the dataframe. A whole bunch of diffirent values have seemingly been used to denote missingness.
+
+Before doing much else, it's often a good idea to take a look at the range of unique values for each variable — this lets us identify odd values that may either be mistakes or missing value codes.
+
+We can see unique values across all variables quickly as follows:
+
+```{r echo = TRUE}
+
+purrr::map(data, unique)
+
+```
+
+Here it's easy to see that missing values have been coded with -999, -98, `.`, "N/A" and `""`, depending on the variable.
+
+If we're reading the data in from a CSV, it's easy enough to specify these strings at the time of import, something like this:
+
+
+Assumeing our file is `called outcomes.csv`:
+
+`data<- readr::read_csv("outcomes.csv", na = c("N/A", ".", "", "999", "-98"))`
+
+Of course, readr will try to guess the column types automatically when importing.
+If there are odd values in numeric columns, these will be read in as character variables and we would have to coerce them to numeric after the fact.
+
+But sometimes, depending on how/where we get our data, we don't have the option of explicitly declaring missing value codes at import time.
+
+This is where the naniar package becomes really useful. The code below will replace any of the specified codes (e.g. 999) with explicit `NA` values.
+
+```{r echo = TRUE}
+
+na_vals<- c("N/A", ".", "", "999", "-98")
+
+data_na<- data %>% naniar::replace_with_na_all(condition = ~.x %in% na_vals)
+
+```
+
+Sometimes we only want to target a selection of variables, under certain conditions. This might be helpful if there are legitimate values of 999 or -98 in some columns. We could do this as follows: 
+
+```{r echo = TRUE, eval = FALSE}
+
+#Only code missing values for `sex` and `id`
+
+data_na<- data%>% replace_with_na_at(.vars = c("sex", "id"), 
+                                  condition = ~.x %in% na_vals)
+
+```
+
+or
+
+```{r echo = TRUE, eval = FALSE}
+
+#Only apply missing value coding to character variables
+
+data_na<- data %>% naniar::replace_with_na_if(.predicate = is.character, condition = ~.x %in% na_vals)
+
+```
+
+##Overviewing missingness at level of the dataframe
+
+I think it can be helpful to have mental template of exploring missing values on three levels: (1) At the level of the whole dataframe, (2) at the level of rows (i.e. cases), and (3) at the level of individual variables.
+
+Let's start with the whole dataframe. We can quickly find out how many missing values and complete values exist, as follows:
+
+```{r echo = TRUE}
+
+#Count missing values
+naniar::n_miss(data_na)
+
+#Count complete values 
+naniar::n_complete(data_na)
+
+```
+
+And to calculate the percentage of missing values in the dataframe:
+
+```{r echo = TRUE}
+
+#Get proportion/percentage of missing values
+n_miss(data_na) / n_complete(data_na)
+
+```
+
+Now we move onto row level analysis. This is important because certain statistical analyses require a minimum degree of completeness for cases included.
+
+Firstly, what percentage of rows have missing data?
+
+```{r echo = TRUE}
+
+pct_miss_case(data_na)
+
+```
+
+Let's get a row-by-row summary of missing data info:
+
+```{r echo = TRUE}
+
+#Save to object because we'll use this output again in a moment
+
+case_missing_summary<- miss_case_summary(data_na)
+
+case_missing_summary
+
+```
+
+This output tells us, for example, that case 6 has two values missing, constituting 33% missing values within his/her row (i.e. across all variables fow which he or she has data).
+
+But I think it is actually easier to visualise this information graphically, so let's do that:
+
+```{r echo = TRUE}
+
+#Filter to capture only cases with missing data
+all_missing<- data_na[which(case_missing_summary$n_miss != 0),]
+
+#Summarise these cases and add an identifier column (whichever you want, in thise case `id`)
+all_missing_summary<- miss_case_summary(all_missing) %>% dplyr::mutate(identifier = all_missing$id)
+
+#Make the bar plot of missingness by row
+missing_by_row_plot<- ggplot(all_missing_summary, 
+                             aes(x = fct_reorder(identifier, pct_miss), y = pct_miss)) + 
+  geom_bar(stat = "identity") + coord_flip() + xlab("Case") + ylab("Percentage Missing") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1L, scale = 1)) 
+
+#Add some plotly tooltip customisation to give extra info
+missing_by_row_plot<- missing_by_row_plot + aes(text = paste("N Missing: ", n_miss, "<br>",
+                                                             "% Missing: ", round(pct_miss, 2), "<br>",
+                                                             "Case Number:", case))
+#Render the plot
+ggplotly(missing_by_row_plot, tooltip = "text")
+
+```
+
+Another helpful way of evaluting row-wise missingness is using a raster or tile plot. The `visdat()` function from the visdat package is great for this, but we'll rotate it to have rows on the y-axis, in case there are a lot of them. 
+
+```{r}
+
+vis_dat_plot<- visdat::vis_dat(data_na) + coord_flip()
+
+ggplotly(vis_dat_plot)
+
+```
+
+</body>
