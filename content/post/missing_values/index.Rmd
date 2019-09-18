@@ -21,7 +21,6 @@ body.blue { background-color:#2b3f60;}
 
 <body class = "blue">
 
-##Set Up
 
 ```{r setup, echo = TRUE, include=FALSE}
 
