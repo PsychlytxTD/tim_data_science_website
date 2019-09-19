@@ -93,7 +93,7 @@ purrr::map(data, unique)
 
 Here it's easy to see that missing values have been coded with -999, -98, ., "N/A" and "" - depending on the variable.
 
-If we're reading the data in from a CSV, it's easy enough to specify these strings at the time of import, something like this:
+If we're reading the data in from a csv, it's easy enough to specify these strings at the time of import, something like this:
 
 
 Assuming our file is called `outcomes.csv`
@@ -205,38 +205,38 @@ But I think it is actually easier to visualise this information graphically, so 
 
 ```{r echo = TRUE}
 
-#Filter to capture only cases with missing data
-all_missing<- data_na[which(case_missing_summary$n_miss != 0),]
+#Find the case numbers of those cases that have missing values
+missing_cases<- case_missing_summary$case[which(case_missing_summary$n_miss != 0)]
 
-#Summarise these cases and add an identifier column 
-#(whichever you want, in thise case `id`)
+#Subset the data to only pull out rows with missing values
+all_missing<- data_na[missing_cases,]
 
-all_missing_summary<- miss_case_summary(all_missing) %>% 
-  dplyr::mutate(identifier = all_missing$id)
+#Summarise these cases & add identifier
 
-#Make the bar plot of missingness by row
+all_missing_summary<-  all_missing %>% miss_case_summary() %>% mutate(identifier = all_missing$id)
+
+#Plot the missingness by row
+
 missing_by_row_plot<- ggplot(all_missing_summary, 
-                             aes(x = fct_reorder(identifier, pct_miss), 
-                                 y = pct_miss)) + 
-  geom_bar(stat = "identity") + coord_flip() + xlab("Case") + 
-  ylab("Percentage Missing") +
+                             aes(x = fct_reorder(identifier, pct_miss), y = pct_miss)) + 
+  geom_bar(stat = "identity") + coord_flip() + xlab("Case") + ylab("Percentage Missing") +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1L, scale = 1)) 
 
-#Add some plotly tooltip customisation to give extra info
-missing_by_row_plot<- missing_by_row_plot + 
-  aes(text = paste("N Missing: ", n_miss, "<br>",
-                    "% Missing: ", round(pct_miss, 2), "<br>",
-                    "Case Number:", case))
-#Render the plot
+missing_by_row_plot<- missing_by_row_plot + aes(text = paste("N Missing: ", n_miss, "<br>",
+                                                             "% Missing: ", round(pct_miss, 2), "<br>",
+                                                             "Case Number:", case))
+
 ggplotly(missing_by_row_plot, tooltip = "text")
 
 ```
 
-Another helpful way of evaluting row-wise missingness is using a raster or tile plot. The `visdat()` function from the visdat package is great for this, but we'll rotate it to have row identifiers on the y-axis.
+Cases that have a missing value on the identifier column are aggregated to make a single bar called NULL. So you'll have to hover along this bar to get the info about the three individual cases that it comprises.
+
+Another helpful way of evaluting row-wise missingness is using a raster or tile plot. One function from the `visdat` package is great for this.
 
 ```{r}
 
-vis_dat_plot<- visdat::vis_dat(data_na) + coord_flip()
+vis_dat_plot<- visdat::vis_dat(data_na)
 
 ggplotly(vis_dat_plot)
 
@@ -244,7 +244,7 @@ ggplotly(vis_dat_plot)
 
 ##Variable-Wise Missing Data Exploration
 
-First, let's work out what percentage of our variables having missing values:
+After exploring row-wise missingness, it's time to identify missing values on a by-variable basis — this gives important info about the variables that people don't want to report on. First, let's work out the percentage of our variables with missing data.
 
 ```{r echo = TRUE}
 
