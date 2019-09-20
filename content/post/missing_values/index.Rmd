@@ -108,7 +108,7 @@ Of course, the `readr` package will try to guess column types automatically when
 
 Sometimes however, it isn't possible to specify a range of missing value codes when importing.
 
-This is where `naniar` package becomes really useful. Using this package, we can replace any predetermined missing value codes (e.g. -999) with explicit NA values.
+This is where `naniar` becomes really useful. Using this package, we can replace any predetermined missing value codes (e.g. -999) with explicit NA values.
 
 ```{r echo = TRUE}
 
@@ -238,11 +238,11 @@ ggplotly(vis_dat_plot)
 
 ```
 
-Here we can see, for example, that case (row) 6 has missing values for`id`a nd `sex` but complete values for all the other variables.
+Here we can see, for example, that case (row) 6 has missing values for`id` and `sex` but complete values for all the other variables.
 
 ##Variable-Wise Missing Data Exploration
 
-After exploring row-wise missingness, it is time to identify missing values on a variable by basis. First, we can work out the percentage of our variables that have missing data.
+After exploring row-wise missingness, it is time to identify missing values on a variable by variable basis. First, we can work out the percentage of our variables that have missing data.
 
 ```{r echo = TRUE}
 
@@ -282,7 +282,7 @@ missing_by_var_plot<- ggplot(missing_by_var,
   
 ```
 
-It is also easy to break down missing value across variables **within levels** of a grouping variable as follows:
+It is also easy to break down missing values across variables **within levels** of a grouping variable as follows:
 
 ```{r echo = TRUE}
 
