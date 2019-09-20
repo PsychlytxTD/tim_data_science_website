@@ -90,11 +90,11 @@ purrr::map(data, unique)
 
 ```
 
-Here it's easy to see that missing values have been coded with -999, -98, ., "N/A" and "" - depending on the variable.
+It is easy to see that missing values have been coded with -999, -98, ., "N/A" and "".
 
-If we're reading the data in from a csv, it's easy enough to specify these strings at the time of import:
+If reading the data from a csv, missing value codes can be specified at the time of import.
 
-Assuming our file is called `outcomes.csv`
+For example, assuming our file is called `outcomes.csv`:
 
 
 ```{r echo = TRUE, eval = FALSE}
@@ -104,11 +104,11 @@ data<- readr::read_csv("outcomes.csv",
 
 ```
 
-Of course, `readr` will try to guess the column types automatically when importing.
+Of course, the `readr` package will try to guess column types automatically when importing.
 
-But sometimes it isn't possible to specify a range of missing value codes at the time of data import.
+Sometimes however, it isn't possible to specify a range of missing value codes when importing.
 
-Here where the `naniar` package becomes really useful. Using this package, we can easily replace any predetermined missing value codes (e.g. -999) with explicit NA values.
+This is where `naniar` package becomes really useful. Using this package, we can replace any predetermined missing value codes (e.g. -999) with explicit NA values.
 
 ```{r echo = TRUE}
 
@@ -120,20 +120,20 @@ data_na
 
 ```
 
-As you can see, missing values are now explicit and not represented by heterogeneous digits/letters. 
+As you can see, missing values are now explicit and no longer represented by heterogeneous digits/letters. 
 
-Sometimes we only want to target a selection of variables, under certain conditions. This might be helpful if there are legitimate values of -999 or -98 in some columns. We could do this as follows: 
+Of course, we may only only want to target a selection of variables, under certain conditions. This can be done as follows:
 
 ```{r echo = TRUE, eval = FALSE}
 
 #Only code missing values for `sex` and `id`
 
-data_na<- data%>% replace_with_na_at(.vars = c("sex", "id"), 
+data_na<- data%>% naniar::replace_with_na_at(.vars = c("sex", "id"), 
                    condition = ~.x %in% na_vals)
 
 ```
 
-or
+and
 
 ```{r echo = TRUE, eval = FALSE}
 
@@ -165,7 +165,7 @@ And to calculate the percentage of missing values in the dataframe:
 ```{r echo = TRUE}
 
 #Get proportion/percentage of missing values
-n_miss(data_na) / n_complete(data_na)
+naniar::n_miss(data_na) / naniar::n_complete(data_na)
 
 ```
 
@@ -179,7 +179,7 @@ First, what percentage of rows have missing data?
 
 ```{r echo = TRUE}
 
-pct_miss_case(data_na)
+naniar::pct_miss_case(data_na)
 
 ```
 
@@ -191,7 +191,7 @@ Now let's get a row-by-row summary of missing data characteristics within each r
 
 #Save to object because we'll use this output again in a moment
 
-case_missing_summary<- miss_case_summary(data_na)
+case_missing_summary<- naniar::miss_case_summary(data_na)
 
 case_missing_summary
 
@@ -211,7 +211,7 @@ all_missing<- data_na[missing_cases,]
 
 #Summarise these cases & add identifier
 
-all_missing_summary<-  all_missing %>% miss_case_summary() %>% mutate(identifier = all_missing$id)
+all_missing_summary<-  all_missing %>% naniar::miss_case_summary() %>% mutate(identifier = all_missing$id)
 
 #Plot the missingness by row
 
@@ -246,7 +246,7 @@ After exploring row-wise missingness, it is time to identify missing values on a
 
 ```{r echo = TRUE}
 
-prop_miss_var(data_na)
+naniar::prop_miss_var(data_na)
 
 ```
 
@@ -256,7 +256,7 @@ Next, we want a break-down of how many values (and what percentage) are missing 
 
 ```{r echo = TRUE}
 
-missing_by_var<- miss_var_summary(data_na)
+missing_by_var<- naniar::miss_var_summary(data_na)
 
 missing_by_var
 
@@ -286,7 +286,7 @@ It is also easy to break down missing value across variables **within levels** o
 
 ```{r echo = TRUE}
 
-data_na %>% group_by(scale) %>% miss_var_summary()
+data_na %>% group_by(scale) %>% naniar::miss_var_summary()
 
 ```
 
