@@ -41,11 +41,11 @@ library(DT)
 
 ##Setting Up
 
-Missing values are often inevitable, and typically a source of anxiety amoung people responsible for analysing data. This post aims to sketch out the beginnings of a workflow for missing value exploration and identification. Thanks to [Nicholas Tierney ](https://github.com/njtierney) for the excellent `naniar` and `visdat` packages from which this post draws inspiration.
+Missing values are often inevitable, and typically a source of anxiety among people responsible for analysing data. This post aims to sketch out the beginnings of a workflow for missing value exploration and identification. Thanks to [Nicholas Tierney ](https://github.com/njtierney) for the excellent `naniar` and `visdat` packages from which I draw inspiration.
 
-Let's begin by simulating some psychological data. I've deliberately made a small dataframe so that analysis steps are easier to understand.
+Let's begin by simulating some psychological data. I've deliberately made a small dataframe so that the steps are easier to understand.
 
-Each character string in the `scale` column represents a psychological outcome measure. The PHQ9 is a depression measure, and the GAD7 is an anxiety measure. The data represent scores across these measures for different individuals at different points in time.
+Each character string in the `scale` column represents a psychological outcome measure. The PHQ9 is used to assess depression, and the GAD7 assesses anxiety. The data represent scores across these two measures for different individuals at various points in time.
 
 ```{r}
 
@@ -79,11 +79,10 @@ data
 
 ```
 
-As you can tell, it is a disaster in terms of consistent coding of missing values in the dataframe. A whole bunch of diffirent values have seemingly been used to denote missingness.
+As you can tell, a diverse and inconsistent set of values have been used to denote missing data.
 
-Before doing much else, it's often a good idea to take a look at the range of unique values for each variable — this lets us identify odd values that may either be mistakes or missing value codes.
+Before doing much else, it is often a good idea to take a look at the uniqe range of values within each variable — this lets us identify odd values that may either be mistakes or missing value codes.
 
-We can see unique values across all variables quickly as follows:
 
 ```{r echo = TRUE}
 
@@ -93,32 +92,29 @@ purrr::map(data, unique)
 
 Here it's easy to see that missing values have been coded with -999, -98, ., "N/A" and "" - depending on the variable.
 
-If we're reading the data in from a csv, it's easy enough to specify these strings at the time of import, something like this:
-
+If we're reading the data in from a csv, it's easy enough to specify these strings at the time of import:
 
 Assuming our file is called `outcomes.csv`
+
 
 ```{r echo = TRUE, eval = FALSE}
 
 data<- readr::read_csv("outcomes.csv", 
-                       na = c("N/A", ".", "", "-999", "-98"))
+       na = c("N/A", ".", "", "-999", "-98"))
 
 ```
 
 Of course, `readr` will try to guess the column types automatically when importing.
-If there are odd values in numeric columns, these will be read in as character variables and we would have to coerce them to numeric after the fact.
 
-But sometimes, depending on how/where we get our data, we don't have the option of explicitly declaring missing value codes at import time.
+But sometimes it isn't possible to specify a range of missing value codes at the time of data import.
 
-This is where the naniar package becomes really useful. The code below will replace any of the specified codes (e.g. -999) with explicit NA values.
+Here where the `naniar` package becomes really useful. Using this package, we can easily replace any predetermined missing value codes (e.g. -999) with explicit NA values.
 
 ```{r echo = TRUE}
 
 na_vals<- c("N/A", ".", "", "-999", "-98")
 
 data_na<- data %>% naniar::replace_with_na_all(condition = ~.x %in% na_vals)
-
-#View the data after applying the function
 
 data_na
 
@@ -133,7 +129,7 @@ Sometimes we only want to target a selection of variables, under certain conditi
 #Only code missing values for `sex` and `id`
 
 data_na<- data%>% replace_with_na_at(.vars = c("sex", "id"), 
-                                  condition = ~.x %in% na_vals)
+                   condition = ~.x %in% na_vals)
 
 ```
 
@@ -144,13 +140,13 @@ or
 #Only apply missing value coding to character variables
 
 data_na<- data %>% naniar::replace_with_na_if(.predicate = is.character, 
-                                              condition = ~.x %in% na_vals)
+                   condition = ~.x %in% na_vals)
 
 ```
 
-##Overviewing missingness at level of the dataframe
+##Missing Values at Level of the Dataframe
 
-I think it can be helpful to have mental template for exploring missing values on three levels: (1) At the level of the whole dataframe, (2) at the level of rows (i.e. cases), and (3) at the level of individual variables.
+I think it can be helpful to approach missing values on on three levels: (1) At the level of the whole dataframe, (2) at the level of individual rows (i.e. cases), and (3) at the level of variables.
 
 Let's start with the whole dataframe. We can quickly find out how many missing values and complete values exist, as follows:
 
@@ -173,11 +169,13 @@ n_miss(data_na) / n_complete(data_na)
 
 ```
 
+So 15% of values in this dataframe are missing.
+
 ##Row-Wise Missing Value Exploration
 
-Now we move onto row level analysis. This is important because certain statistical analyses require a minimum degree of completeness for cases included.
+Now we valuate missingness at the level of individual rows. 
 
-Firstly, what percentage of rows have missing data?
+First, what percentage of rows have missing data?
 
 ```{r echo = TRUE}
 
@@ -185,7 +183,9 @@ pct_miss_case(data_na)
 
 ```
 
-Let's get a row-by-row summary of missing data info:
+Great, 64% of our rows contain missing data.
+
+Now let's get a row-by-row summary of missing data characteristics within each row:
 
 ```{r echo = TRUE}
 
@@ -193,13 +193,11 @@ Let's get a row-by-row summary of missing data info:
 
 case_missing_summary<- miss_case_summary(data_na)
 
-#Let's view the summary
-
 case_missing_summary
 
 ```
 
-This output tells us, for example, that case 6 has two values missing, constituting 33% missing values within his/her row (i.e. across all variables fow which he or she has data).
+This output tells us that case 6 has two values missing, constituting 33% missing values within his/her row.
 
 But I think it is actually easier to visualise this information graphically, so let's do that (don't forget to hover over the plot):
 
@@ -230,9 +228,7 @@ ggplotly(missing_by_row_plot, tooltip = "text")
 
 ```
 
-Cases that have a missing value on the identifier column are aggregated to make a single bar called NULL. So you'll have to hover along this bar to get the info about the three individual cases that it comprises.
-
-Another helpful way of evaluting row-wise missingness is using a raster or tile plot. One function from the `visdat` package is great for this.
+Another good way to evaluate row-wise missingness is using a raster or tile plot. The function below, from the `visdat` package, is great for this. 
 
 ```{r}
 
@@ -242,9 +238,11 @@ ggplotly(vis_dat_plot)
 
 ```
 
+Here we can see, for example, that case (row) 6 has missing values for`id`a nd `sex` but complete values for all the other variables.
+
 ##Variable-Wise Missing Data Exploration
 
-After exploring row-wise missingness, it's time to identify missing values on a by-variable basis — this gives important info about the variables that people don't want to report on. First, let's work out the percentage of our variables with missing data.
+After exploring row-wise missingness, it is time to identify missing values on a variable by basis. First, we can work out the percentage of our variables that have missing data.
 
 ```{r echo = TRUE}
 
@@ -252,19 +250,19 @@ prop_miss_var(data_na)
 
 ```
 
-Next, we want a break-down of how many values (and what percentage) are missing per variable:
+So we see that 60% of our variables contain at least one missing value.
+
+Next, we want a break-down of how many values (and what percentage) are missing specifically on each variable:
 
 ```{r echo = TRUE}
 
 missing_by_var<- miss_var_summary(data_na)
 
-#View the breakdown
-
 missing_by_var
 
 ```
 
-But again, it helps to visualise this information (and don't forget to hover over the plot to get the extra
+Again, it helps to visualise this information with a plot (and don't forget to hover over the plot to get the extra
 info we added when customising the tooltip).
 
 ```{r echo = TRUE}
@@ -284,7 +282,7 @@ missing_by_var_plot<- ggplot(missing_by_var,
   
 ```
 
-As an extra, if we want to break down missing value across variables **within levels** of a grouping variable, we can just do this:
+It is also easy to break down missing value across variables **within levels** of a grouping variable as follows:
 
 ```{r echo = TRUE}
 
@@ -292,6 +290,6 @@ data_na %>% group_by(scale) %>% miss_var_summary()
 
 ```
 
-Hope this was helpful, any feedback welcome of course.
+I hope this this post was helpful as an intro to missing values exploration and any feedback is of course welcome.
 
 </body>
