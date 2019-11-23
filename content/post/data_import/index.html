@@ -1,0 +1,1009 @@
+---
+title: "Supercharged Data Cleaning with R"
+author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
+date: '2019-11-23'
+categories:
+  - Data Cleaning
+tags:
+  - Data Cleaning
+output:
+  blogdown::html_page:
+    toc: yes
+---
+
+
+
+<style>
+body.blue { background-color:#2b3f60;}
+</style>
+<p>#Supercharged Data Cleaning with R — Part One</p>
+<p>##Importing the Data</p>
+<p>Real-world data is messy, irritating and cumbersome. Many tutorials on data wrangling with R simply don’t prepare you for it. The following article will be the first in a series of expositions analysing unmanicured datasets using best practices. As I am a Clinical Psychologist by training, the content will be skewed towards mental health and psychology-related datasets.</p>
+<p>I begin by loading all required packages.</p>
+<pre class="r"><code>library(fs)
+library(readr)
+library(here)</code></pre>
+<pre><code>## here() starts at /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import</code></pre>
+<pre class="r"><code>library(purrr)
+library(janitor)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;janitor&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     chisq.test, fisher.test</code></pre>
+<pre class="r"><code>library(dplyr)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(stringr)
+library(naniar)
+library(plotly)</code></pre>
+<pre><code>## Loading required package: ggplot2</code></pre>
+<pre><code>## 
+## Attaching package: &#39;plotly&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:ggplot2&#39;:
+## 
+##     last_plot</code></pre>
+<pre><code>## The following object is masked from &#39;package:stats&#39;:
+## 
+##     filter</code></pre>
+<pre><code>## The following object is masked from &#39;package:graphics&#39;:
+## 
+##     layout</code></pre>
+<pre class="r"><code>library(stringr)
+library(forcats)</code></pre>
+<p>The <code>fs</code> package is fantastic for anything that relates to file/folder navigation using <code>R</code>. The function <code>here()</code> always finds the folder where the <code>.Rproj</code> file is contained, and treates this folder as the working directory. Because I am not specifying an absolute file path (e.g. <code>tim_data\analysis\import</code>), other people who have the data can run my script immediately.</p>
+<p>Next I list all files in the working directory to locate the spreadsheets in which my data is contained.</p>
+<pre class="r"><code>fs::dir_ls(path = here())</code></pre>
+<pre><code>## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/Rplot.png
+## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/data_import
+## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/data_import.Rproj
+## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/early_2019.csv
+## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/early_2019.xlsx
+## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/index.Rmd
+## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/mid_2017.csv
+## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/mid_2017.xlsx
+## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/mid_2018.csv
+## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/mid_2018.xlsx</code></pre>
+<p>Because I only want csv files, I use a basic regular expression to import only files that end in <code>.csv</code>. Then, I use the <code>map()</code> to programatically read in and store each dataframe (i.e. from each spreadsheet) into a list of dataframes. I will later bind them into a single dataframe.</p>
+<pre class="r"><code>csv_files&lt;- fs::dir_ls(here(), regexp = &quot;\\.csv$&quot;)
+
+pain_data_raw&lt;- csv_files %&gt;% purrr::map( ~readr::read_csv(.x)) %&gt;% 
+  purrr::set_names(&quot;early_19&quot;, &quot;mid_17&quot;, &quot;mid_18&quot;)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_double(),
+##   Patient.Identifier = col_character(),
+##   FacilityID = col_character(),
+##   DOB = col_character(),
+##   SLK = col_character(),
+##   CountryOfBirthOther = col_character(),
+##   InterpreterLanguage = col_character(),
+##   ReferralDate = col_character(),
+##   ReferralSourceOther = col_character(),
+##   EpisodeStartDate = col_character(),
+##   EpisodeEndDate = col_character(),
+##   EpisodeEndModeOther = col_logical(),
+##   CompensationOtherDetail = col_character(),
+##   PainSourceOtherDetail = col_character(),
+##   ComorbiditiesOther = col_character(),
+##   CMv2_MHOtherDetail = col_character(),
+##   CMv2_OtherDetail = col_character(),
+##   CMv2_Diabetes = col_logical(),
+##   Ref_SurveyKey = col_character(),
+##   PathwayID = col_character(),
+##   Ref_GenDate = col_character()
+##   # ... with 111 more columns
+## )</code></pre>
+<pre><code>## See spec(...) for full column specifications.</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_character(),
+##   PatientID = col_double(),
+##   EpisodeID = col_double(),
+##   PatientID_service = col_logical(),
+##   Sex = col_double(),
+##   State = col_double(),
+##   Postcode = col_double(),
+##   CountryOfBirth = col_double(),
+##   InterpreterReqd = col_double(),
+##   CommunicationAssist = col_double(),
+##   HearingSightImpaired = col_double(),
+##   NonIndigenous = col_double(),
+##   Aboriginal = col_double(),
+##   TorresStraitIsl = col_double(),
+##   Maori = col_double(),
+##   EthnicityEuropean = col_double(),
+##   EthnicitySamoan = col_double(),
+##   EthnicityTongan = col_double(),
+##   EthnicityChinese = col_double(),
+##   EthnicityMaori = col_double(),
+##   EthnicityCookIslands = col_double()
+##   # ... with 124 more columns
+## )</code></pre>
+<pre><code>## See spec(...) for full column specifications.</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_double(),
+##   Patient.Identifier = col_character(),
+##   FacilityID = col_character(),
+##   DOB = col_character(),
+##   CountryOfBirthOther = col_character(),
+##   InterpreterLanguage = col_character(),
+##   ReferralDate = col_character(),
+##   ReferralSourceOther = col_character(),
+##   EpisodeStartDate = col_character(),
+##   EpisodeEndDate = col_character(),
+##   EpisodeEndModeOther = col_logical(),
+##   CompensationOtherDetail = col_character(),
+##   PainSourceOtherDetail = col_character(),
+##   ComorbiditiesOther = col_character(),
+##   CMv2_MHOtherDetail = col_character(),
+##   CMv2_OtherDetail = col_character(),
+##   CMv2_Diabetes = col_logical(),
+##   Ref_SurveyKey = col_character(),
+##   Ref_GenDate = col_character(),
+##   Ref_CompDate = col_character(),
+##   Ref_HoursWorked = col_character()
+##   # ... with 121 more columns
+## )</code></pre>
+<pre><code>## See spec(...) for full column specifications.</code></pre>
+<p>The <code>readr</code> automatically guesses the data type of each imported column. But it doesn’t always guess right, and this can create problems with large datasets. In theory, each of the three dataframes should have identical variables. But let’s check this, using a handy function from the <code>janitor</code> package.</p>
+<pre class="r"><code>data_comparison&lt;- janitor::compare_df_cols(pain_data_raw)
+
+data_comparison %&gt;% dplyr::filter(column_name == &#39;EEnd_BPIPainInterference&#39;)</code></pre>
+<pre><code>##                column_name early_19    mid_17  mid_18
+## 1 EEnd_BPIPainInterference  numeric character numeric</code></pre>
+<p>As you can see, the <code>EEnd_BPIPainInterference</code> column is specified as a numeric variable in two of the dataframes, but as a character varible in the other. To be clear, this variable (which measures how much pain disrupts daily activities) should certainly be numeric. The character specification in one of the dataframes is probably caused by an errant fullstop or other character in the column (a data entry error).</p>
+<p>Therefore, when you have lots of columns (&gt; 100) and likely data entry mistakes, it is often best to manually import all columns as character variables, and then alter their type as needed. I I can do this by adding <code>col_types = cols(.default = &quot;c&quot;)</code> to the original code.</p>
+<pre class="r"><code>pain_data_raw&lt;- csv_files %&gt;% purrr::map( ~readr::read_csv(.x, col_types = cols(.default = &quot;c&quot;))) %&gt;% 
+  purrr::set_names(&quot;early_19&quot;, &quot;mid_17&quot;, &quot;mid_18&quot;)</code></pre>
+<p>If I now compare each dataframe again, all variables are of type character. But there is another problem. Certain variables appear in one dataframe but not the others, or appear in two dataframes but not the third. This is indicated by <code>NA</code> values in the output.</p>
+<pre class="r"><code>data_comparison</code></pre>
+<pre><code>##                       column_name  early_19    mid_17    mid_18
+## 1                      Aboriginal   numeric   numeric   numeric
+## 2                       ACCFunded   numeric   numeric      &lt;NA&gt;
+## 3                             age   numeric   numeric      &lt;NA&gt;
+## 4                       age_group   numeric   numeric      &lt;NA&gt;
+## 5               BPIAverage_change      &lt;NA&gt;      &lt;NA&gt; character
+## 6                BPIAverage_group      &lt;NA&gt;      &lt;NA&gt; character
+## 7              BPIAverage_percent      &lt;NA&gt;      &lt;NA&gt; character
+## 8           BPIInterference_group      &lt;NA&gt;      &lt;NA&gt;   numeric
+## 9                     BPIMainPain   numeric   numeric      &lt;NA&gt;
+## 10                BPIMainPainNone   numeric      &lt;NA&gt;      &lt;NA&gt;
+## 11     BPIPainInterference_change      &lt;NA&gt;      &lt;NA&gt;   numeric
+## 12                 BPIWorst_group      &lt;NA&gt;      &lt;NA&gt; character
+## 13               BPIWorst_percent      &lt;NA&gt;      &lt;NA&gt; character
+## 14                     CancerPain   numeric   numeric   numeric
+## 15                      CMAnaemia   numeric   numeric   numeric
+## 16                CMBloodPressure   numeric   numeric   numeric
+## 17                       CMCancer   numeric   numeric   numeric
+## 18                   CMDepression   numeric   numeric   numeric
+## 19                     CMDiabetes   numeric   numeric   numeric
+## 20                        CMHeart   numeric   numeric   numeric
+## 21                       CMKidney   numeric   numeric   numeric
+## 22                         CMLung   numeric   numeric   numeric
+## 23               CMOsteoarthritis   numeric   numeric   numeric
+## 24                        CMOther   numeric   numeric   numeric
+## 25                   CMRheumatoid   numeric   numeric   numeric
+## 26                       CMStroke   numeric   numeric   numeric
+## 27                        CMUlcer   numeric   numeric   numeric
+## 28                   CMv2_Anxiety   numeric      &lt;NA&gt;   numeric
+## 29                 CMv2_Arthritis   numeric      &lt;NA&gt;   numeric
+## 30             CMv2_BloodPressure   numeric      &lt;NA&gt;   numeric
+## 31                    CMv2_Cancer   numeric      &lt;NA&gt;   numeric
+## 32               CMv2_Cholesterol   numeric      &lt;NA&gt;   numeric
+## 33                CMv2_Depression   numeric      &lt;NA&gt;   numeric
+## 34                  CMv2_Diabetes   logical      &lt;NA&gt;   logical
+## 35                 CMv2_Digestive   numeric      &lt;NA&gt;   numeric
+## 36          CMv2_HeartCirculation   numeric      &lt;NA&gt;   numeric
+## 37       CMv2_LiverKidneyPancreas   numeric      &lt;NA&gt;   numeric
+## 38              CMv2_MentalHealth   numeric      &lt;NA&gt;   numeric
+## 39             CMv2_MHOtherDetail character      &lt;NA&gt; character
+## 40                    CMv2_Muscle   numeric      &lt;NA&gt;   numeric
+## 41              CMv2_Neurological   numeric      &lt;NA&gt;   numeric
+## 42                     CMv2_Other   numeric      &lt;NA&gt;   numeric
+## 43               CMv2_OtherDetail character      &lt;NA&gt; character
+## 44                      CMv2_PTSD   numeric      &lt;NA&gt;   numeric
+## 45               CMv2_Respiratory   numeric      &lt;NA&gt;   numeric
+## 46                   CMv2_Thyroid   numeric      &lt;NA&gt;   numeric
+## 47            CommunicationAssist   numeric   numeric   numeric
+## 48             ComorbiditiesOther character character character
+## 49               CompensationCase   numeric   numeric   numeric
+## 50           CompensationCaseType   numeric   numeric   numeric
+## 51        CompensationOtherDetail character character character
+## 52                 CountryOfBirth   numeric   numeric   numeric
+## 53            CountryOfBirthOther character character character
+## 54             DASSAnxiety_change      &lt;NA&gt;      &lt;NA&gt; character
+## 55              DASSAnxiety_group      &lt;NA&gt;      &lt;NA&gt; character
+## 56          DASSDepression_change      &lt;NA&gt;      &lt;NA&gt; character
+## 57           DASSDepression_group      &lt;NA&gt;      &lt;NA&gt; character
+## 58              DASSStress_change      &lt;NA&gt;      &lt;NA&gt; character
+## 59               DASSStress_group      &lt;NA&gt;      &lt;NA&gt; character
+## 60                            DOB character character character
+## 61                      DVAClient   numeric      &lt;NA&gt;   numeric
+## 62           DVAPreviouslyServing   numeric      &lt;NA&gt;   numeric
+## 63               EEnd_BPIActivity character character character
+## 64                EEnd_BPIAve_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 65                EEnd_BPIAverage character character   numeric
+## 66              EEnd_BPIEnjoyment character character character
+## 67                EEnd_BPIInt_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 68                  EEnd_BPILeast character character character
+## 69               EEnd_BPIMainPain   numeric   numeric   numeric
+## 70                   EEnd_BPIMood character character character
+## 71                    EEnd_BPINow character character character
+## 72       EEnd_BPIPainInterference   numeric character   numeric
+## 73  EEnd_BPIPainInterferenceEmpty   numeric   numeric   numeric
+## 74           EEnd_BPIPainSeverity character character character
+## 75      EEnd_BPIPainSeverityEmpty   numeric   numeric   numeric
+## 76              EEnd_BPIRelations   numeric character   numeric
+## 77                  EEnd_BPISleep   numeric character   numeric
+## 78                EEnd_BPIWalking   numeric character   numeric
+## 79                   EEnd_BPIWork   numeric character   numeric
+## 80                  EEnd_BPIWorst character character character
+## 81                  EEnd_CompDate character character character
+## 82                EEnd_CompStatus   numeric   numeric   numeric
+## 83             EEnd_CountAnalgAll character   numeric character
+## 84           EEnd_CountAnalgExOpi character   numeric character
+## 85             EEnd_DailyMorphine   numeric   numeric   numeric
+## 86               EEnd_DASSAnx_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 87               EEnd_DASSAnxiety character character character
+## 88      EEnd_DASSAnxiety_severity      &lt;NA&gt;      &lt;NA&gt; character
+## 89          EEnd_DASSAnxietyEmpty   numeric   numeric   numeric
+## 90               EEnd_DASSDep_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 91            EEnd_DASSDepression   numeric character   numeric
+## 92   EEnd_DASSDepression_severity      &lt;NA&gt;      &lt;NA&gt;   numeric
+## 93       EEnd_DASSDepressionEmpty   numeric   numeric   numeric
+## 94                    EEnd_DASSQ1 character character character
+## 95                   EEnd_DASSQ10 character character   numeric
+## 96                   EEnd_DASSQ11   numeric character   numeric
+## 97                   EEnd_DASSQ12   numeric character character
+## 98                   EEnd_DASSQ13   numeric character character
+## 99                   EEnd_DASSQ14 character character   numeric
+## 100                  EEnd_DASSQ15 character character character
+## 101                  EEnd_DASSQ16   numeric character   numeric
+## 102                  EEnd_DASSQ17   numeric character   numeric
+## 103                  EEnd_DASSQ18   numeric character   numeric
+## 104                  EEnd_DASSQ19 character character character
+## 105                   EEnd_DASSQ2   numeric character   numeric
+## 106                  EEnd_DASSQ20 character character character
+## 107                  EEnd_DASSQ21   numeric character character
+## 108                   EEnd_DASSQ3   numeric character   numeric
+## 109                   EEnd_DASSQ4   numeric character   numeric
+## 110                   EEnd_DASSQ5 character character character
+## 111                   EEnd_DASSQ6 character character   numeric
+## 112                   EEnd_DASSQ7 character character character
+## 113                   EEnd_DASSQ8   numeric character   numeric
+## 114                   EEnd_DASSQ9 character character   numeric
+## 115              EEnd_DASSStr_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 116               EEnd_DASSStress character character character
+## 117      EEnd_DASSStress_severity      &lt;NA&gt;      &lt;NA&gt; character
+## 118          EEnd_DASSStressEmpty   numeric   numeric   numeric
+## 119                EEnd_DASSTotal character character character
+## 120           EEnd_DASSTotalEmpty   numeric   numeric   numeric
+## 121  EEnd_DrugGroupAnticonvulsant   numeric      &lt;NA&gt;   numeric
+## 122  EEnd_DrugGroupAntidepressant   numeric      &lt;NA&gt;   numeric
+## 123  EEnd_DrugGroupBenzodiazepine   numeric      &lt;NA&gt;   numeric
+## 124 EEnd_DrugGroupMedicalCannabis   numeric      &lt;NA&gt;   numeric
+## 125           EEnd_DrugGroupNSAID   numeric      &lt;NA&gt;   numeric
+## 126          EEnd_DrugGroupOpioid   numeric      &lt;NA&gt;   numeric
+## 127     EEnd_DrugGroupParacetamol   numeric      &lt;NA&gt;   numeric
+## 128                EEnd_EFullTime   numeric   numeric   numeric
+## 129              EEnd_EHomeDuties   numeric   numeric   numeric
+## 130               EEnd_ELeavePain   numeric   numeric   numeric
+## 131            EEnd_ELimitedHours   numeric   numeric   numeric
+## 132                EEnd_EPartTime   numeric   numeric   numeric
+## 133                 EEnd_ERetired   numeric   numeric   numeric
+## 134              EEnd_ERetraining   numeric   numeric   numeric
+## 135                   EEnd_EStudy   numeric   numeric   numeric
+## 136       EEnd_EUnemployedNotPain   numeric   numeric   numeric
+## 137          EEnd_EUnemployedPain   numeric   numeric   numeric
+## 138               EEnd_EVoluntary   numeric   numeric   numeric
+## 139                  EEnd_GenDate character character character
+## 140              EEnd_GRC_Overall character      &lt;NA&gt; character
+## 141             EEnd_GRC_Physical character      &lt;NA&gt; character
+## 142                   EEnd_Height   numeric   numeric   numeric
+## 143              EEnd_HoursWorked character   numeric character
+## 144          EEnd_HSUAlliedHealth   numeric   numeric   numeric
+## 145       EEnd_HSUDiagnosticTests   numeric   numeric   numeric
+## 146                    EEnd_HSUED   numeric   numeric   numeric
+## 147                    EEnd_HSUGP   numeric   numeric   numeric
+## 148              EEnd_HSUHospital   numeric   numeric   numeric
+## 149            EEnd_HSUSpecialist   numeric   numeric   numeric
+## 150       EEnd_MedicationConsumed   numeric      &lt;NA&gt;   numeric
+## 151       EEnd_MedicationReported   numeric      &lt;NA&gt;   numeric
+## 152               EEnd_OpioidFreq   numeric   numeric   numeric
+## 153              EEnd_OpioidMaint   numeric   numeric   numeric
+## 154          EEnd_PainDescription   numeric   numeric   numeric
+## 155          EEnd_PCSHelplessness   numeric character character
+## 156     EEnd_PCSHelplessnessEmpty   numeric   numeric   numeric
+## 157         EEnd_PCSMagnification character character character
+## 158    EEnd_PCSMagnificationEmpty   numeric   numeric   numeric
+## 159                    EEnd_PCSQ1   numeric character   numeric
+## 160                   EEnd_PCSQ10 character character   numeric
+## 161                   EEnd_PCSQ11 character character character
+## 162                   EEnd_PCSQ12   numeric character character
+## 163                   EEnd_PCSQ13 character character character
+## 164                    EEnd_PCSQ2   numeric   numeric   numeric
+## 165                    EEnd_PCSQ3   numeric character   numeric
+## 166                    EEnd_PCSQ4   numeric character character
+## 167                    EEnd_PCSQ5   numeric character   numeric
+## 168                    EEnd_PCSQ6 character character character
+## 169                    EEnd_PCSQ7 character character character
+## 170                    EEnd_PCSQ8   numeric character   numeric
+## 171                    EEnd_PCSQ9   numeric character   numeric
+## 172            EEnd_PCSRumination character character character
+## 173       EEnd_PCSRuminationEmpty   numeric   numeric   numeric
+## 174               EEnd_PCSTot_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 175                 EEnd_PCSTotal character character character
+## 176        EEnd_PCSTotal_severity      &lt;NA&gt;      &lt;NA&gt; character
+## 177            EEnd_PCSTotalEmpty   numeric   numeric   numeric
+## 178                EEnd_PSEQEmpty   numeric   numeric   numeric
+## 179                   EEnd_PSEQQ1   numeric character character
+## 180                  EEnd_PSEQQ10   numeric character character
+## 181                   EEnd_PSEQQ2   numeric character   numeric
+## 182                   EEnd_PSEQQ3 character character   numeric
+## 183                   EEnd_PSEQQ4   numeric character   numeric
+## 184                   EEnd_PSEQQ5   numeric character character
+## 185                   EEnd_PSEQQ6 character character character
+## 186                   EEnd_PSEQQ7   numeric character   numeric
+## 187                   EEnd_PSEQQ8   numeric character character
+## 188                   EEnd_PSEQQ9 character character character
+## 189              EEnd_PSEQTot_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 190                EEnd_PSEQTotal   numeric character character
+## 191       EEnd_PSEQTotal_severity      &lt;NA&gt;      &lt;NA&gt; character
+## 192               EEnd_SentStatus   numeric   numeric   numeric
+## 193         EEnd_SurveyCategoryID   numeric   numeric   numeric
+## 194                EEnd_SurveyKey character character character
+## 195         EEnd_SurveyScheduleID   numeric   numeric   numeric
+## 196                   EEnd_Weight   numeric   numeric   numeric
+## 197        EEnd_WorkHoursAffected   numeric   numeric   numeric
+## 198         EEnd_WorkTypeAffected   numeric   numeric   numeric
+## 199            EEnd_WPAI_Employed   numeric      &lt;NA&gt;   numeric
+## 200      EEnd_WPAI_EmployedStatus   numeric      &lt;NA&gt;   numeric
+## 201         EEnd_WPAI_HoursMissed character      &lt;NA&gt; character
+## 202         EEnd_WPAI_HoursWorked character      &lt;NA&gt; character
+## 203    EEnd_WPAI_NotEmployedCause   numeric      &lt;NA&gt;   numeric
+## 204    EEnd_WPAI_ProductivityLost character      &lt;NA&gt; character
+## 205                EpisodeEndDate character character character
+## 206                EpisodeEndMode   numeric   numeric   numeric
+## 207           EpisodeEndModeOther   logical   logical   logical
+## 208                     EpisodeID   numeric   numeric   numeric
+## 209              EpisodeID_unique   numeric      &lt;NA&gt;      &lt;NA&gt;
+## 210                 EpisodeLength   numeric   numeric      &lt;NA&gt;
+## 211              EpisodeStartDate character character character
+## 212              EpisodeStartMode   numeric   numeric   numeric
+## 213              EthnicityChinese      &lt;NA&gt;   numeric      &lt;NA&gt;
+## 214          EthnicityCookIslands      &lt;NA&gt;   numeric      &lt;NA&gt;
+## 215             EthnicityEuropean      &lt;NA&gt;   numeric      &lt;NA&gt;
+## 216               EthnicityIndian      &lt;NA&gt;   numeric      &lt;NA&gt;
+## 217                EthnicityMaori      &lt;NA&gt;   numeric      &lt;NA&gt;
+## 218               EthnicityNiuean      &lt;NA&gt;   numeric      &lt;NA&gt;
+## 219            EthnicityNotStated      &lt;NA&gt;   numeric      &lt;NA&gt;
+## 220                EthnicityOther      &lt;NA&gt;   numeric      &lt;NA&gt;
+## 221          EthnicityOtherDetail      &lt;NA&gt;   logical      &lt;NA&gt;
+## 222               EthnicitySamoan      &lt;NA&gt;   numeric      &lt;NA&gt;
+## 223               EthnicityTongan      &lt;NA&gt;   numeric      &lt;NA&gt;
+## 224                    FacilityID character character character
+## 225          HearingSightImpaired   numeric   numeric   numeric
+## 226              IndigenousStatus   numeric      &lt;NA&gt;   numeric
+## 227           InterpreterLanguage character character character
+## 228               InterpreterReqd   numeric   numeric   numeric
+## 229                         Maori   numeric   numeric   numeric
+## 230          MedicationInaccuracy   numeric   logical      &lt;NA&gt;
+## 231                 NonIndigenous   numeric   numeric   numeric
+## 232                  PainDuration   numeric   numeric   numeric
+## 233                    PainSource   numeric   numeric   numeric
+## 234         PainSourceOtherDetail character character character
+## 235                     PathwayID character character      &lt;NA&gt;
+## 236              PathwayID_unique   numeric      &lt;NA&gt;      &lt;NA&gt;
+## 237            Patient.Identifier character character character
+## 238                     PatientID   numeric   numeric   numeric
+## 239             PatientID_service      &lt;NA&gt;   logical      &lt;NA&gt;
+## 240               PCSTotal_change      &lt;NA&gt;      &lt;NA&gt; character
+## 241                PCSTotal_group      &lt;NA&gt;      &lt;NA&gt; character
+## 242                      Postcode   numeric   numeric   numeric
+## 243              PSEQTotal_change      &lt;NA&gt;      &lt;NA&gt; character
+## 244               PSEQTotal_group      &lt;NA&gt;      &lt;NA&gt; character
+## 245               Ref_BPIActivity character character character
+## 246                Ref_BPIAve_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 247                Ref_BPIAverage character character character
+## 248              Ref_BPIEnjoyment character character character
+## 249                Ref_BPIInt_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 250                  Ref_BPILeast character character character
+## 251               Ref_BPIMainPain   numeric   numeric   numeric
+## 252                   Ref_BPIMood character character character
+## 253                    Ref_BPINow character character character
+## 254       Ref_BPIPainInterference character character   numeric
+## 255  Ref_BPIPainInterferenceEmpty   numeric   numeric   numeric
+## 256           Ref_BPIPainSeverity character character character
+## 257      Ref_BPIPainSeverityEmpty   numeric   numeric   numeric
+## 258              Ref_BPIRelations character character   numeric
+## 259                  Ref_BPISleep character character   numeric
+## 260                Ref_BPIWalking character character   numeric
+## 261                   Ref_BPIWork character character character
+## 262                  Ref_BPIWorst character character character
+## 263                  Ref_CompDate character character character
+## 264                Ref_CompStatus   numeric   numeric   numeric
+## 265             Ref_CountAnalgAll character   numeric character
+## 266           Ref_CountAnalgExOpi character   numeric character
+## 267             Ref_DailyMorphine   numeric   numeric   numeric
+## 268               Ref_DASSAnx_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 269               Ref_DASSAnxiety character character   numeric
+## 270      Ref_DASSAnxiety_severity      &lt;NA&gt;      &lt;NA&gt;   numeric
+## 271          Ref_DASSAnxietyEmpty   numeric   numeric   numeric
+## 272               Ref_DASSDep_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 273            Ref_DASSDepression character character character
+## 274   Ref_DASSDepression_severity      &lt;NA&gt;      &lt;NA&gt; character
+## 275       Ref_DASSDepressionEmpty   numeric   numeric   numeric
+## 276                    Ref_DASSQ1 character character character
+## 277                   Ref_DASSQ10 character character character
+## 278                   Ref_DASSQ11 character character character
+## 279                   Ref_DASSQ12 character character character
+## 280                   Ref_DASSQ13 character character   numeric
+## 281                   Ref_DASSQ14 character character character
+## 282                   Ref_DASSQ15 character character   numeric
+## 283                   Ref_DASSQ16 character character character
+## 284                   Ref_DASSQ17 character character character
+## 285                   Ref_DASSQ18 character character   numeric
+## 286                   Ref_DASSQ19 character character   numeric
+## 287                    Ref_DASSQ2 character character character
+## 288                   Ref_DASSQ20 character character   numeric
+## 289                   Ref_DASSQ21 character character character
+## 290                    Ref_DASSQ3 character character   numeric
+## 291                    Ref_DASSQ4 character character   numeric
+## 292                    Ref_DASSQ5 character character   numeric
+## 293                    Ref_DASSQ6 character character   numeric
+## 294                    Ref_DASSQ7 character character character
+## 295                    Ref_DASSQ8 character character   numeric
+## 296                    Ref_DASSQ9 character character character
+## 297               Ref_DASSStr_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 298                Ref_DASSStress character character   numeric
+## 299       Ref_DASSStress_severity      &lt;NA&gt;      &lt;NA&gt;   numeric
+## 300           Ref_DASSStressEmpty   numeric   numeric   numeric
+## 301                 Ref_DASSTotal character character character
+## 302            Ref_DASSTotalEmpty   numeric   numeric   numeric
+## 303   Ref_DrugGroupAnticonvulsant   numeric      &lt;NA&gt;   numeric
+## 304   Ref_DrugGroupAntidepressant   numeric      &lt;NA&gt;   numeric
+## 305   Ref_DrugGroupBenzodiazepine   numeric      &lt;NA&gt;   numeric
+## 306  Ref_DrugGroupMedicalCannabis   numeric      &lt;NA&gt;   numeric
+## 307            Ref_DrugGroupNSAID   numeric      &lt;NA&gt;   numeric
+## 308           Ref_DrugGroupOpioid   numeric      &lt;NA&gt;   numeric
+## 309      Ref_DrugGroupParacetamol   numeric      &lt;NA&gt;   numeric
+## 310                 Ref_EFullTime   numeric   numeric   numeric
+## 311               Ref_EHomeDuties   numeric   numeric   numeric
+## 312                Ref_ELeavePain   numeric   numeric   numeric
+## 313             Ref_ELimitedHours   numeric   numeric   numeric
+## 314                 Ref_EPartTime   numeric   numeric   numeric
+## 315                  Ref_ERetired   numeric   numeric   numeric
+## 316               Ref_ERetraining   numeric   numeric   numeric
+## 317                    Ref_EStudy   numeric   numeric   numeric
+## 318        Ref_EUnemployedNotPain   numeric   numeric   numeric
+## 319           Ref_EUnemployedPain   numeric   numeric   numeric
+## 320                Ref_EVoluntary   numeric   numeric   numeric
+## 321                   Ref_GenDate character character character
+## 322                    Ref_Height   numeric   numeric   numeric
+## 323               Ref_HoursWorked character   numeric character
+## 324           Ref_HSUAlliedHealth   numeric   numeric   numeric
+## 325        Ref_HSUDiagnosticTests   numeric   numeric   numeric
+## 326                     Ref_HSUED   numeric   numeric   numeric
+## 327                     Ref_HSUGP   numeric   numeric   numeric
+## 328               Ref_HSUHospital   numeric   numeric   numeric
+## 329             Ref_HSUSpecialist   numeric   numeric   numeric
+## 330        Ref_MedicationConsumed   numeric      &lt;NA&gt;   numeric
+## 331        Ref_MedicationReported   numeric      &lt;NA&gt;   numeric
+## 332                Ref_OpioidFreq   numeric   numeric   numeric
+## 333               Ref_OpioidMaint   numeric   numeric   numeric
+## 334           Ref_PainDescription   numeric   numeric   numeric
+## 335           Ref_PCSHelplessness character character character
+## 336      Ref_PCSHelplessnessEmpty   numeric   numeric   numeric
+## 337          Ref_PCSMagnification character character character
+## 338     Ref_PCSMagnificationEmpty   numeric   numeric   numeric
+## 339                     Ref_PCSQ1 character character character
+## 340                    Ref_PCSQ10 character character character
+## 341                    Ref_PCSQ11 character character character
+## 342                    Ref_PCSQ12 character character character
+## 343                    Ref_PCSQ13 character character character
+## 344                     Ref_PCSQ2 character character character
+## 345                     Ref_PCSQ3 character character character
+## 346                     Ref_PCSQ4 character character character
+## 347                     Ref_PCSQ5 character character character
+## 348                     Ref_PCSQ6 character character character
+## 349                     Ref_PCSQ7 character character character
+## 350                     Ref_PCSQ8 character character character
+## 351                     Ref_PCSQ9 character character character
+## 352             Ref_PCSRumination character character character
+## 353        Ref_PCSRuminationEmpty   numeric   numeric   numeric
+## 354                Ref_PCSTot_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 355                  Ref_PCSTotal character character character
+## 356         Ref_PCSTotal_severity      &lt;NA&gt;      &lt;NA&gt; character
+## 357             Ref_PCSTotalEmpty   numeric   numeric   numeric
+## 358                 Ref_PSEQEmpty   numeric   numeric   numeric
+## 359                    Ref_PSEQQ1   numeric character character
+## 360                   Ref_PSEQQ10 character character character
+## 361                    Ref_PSEQQ2 character character character
+## 362                    Ref_PSEQQ3   numeric character character
+## 363                    Ref_PSEQQ4   numeric character   numeric
+## 364                    Ref_PSEQQ5 character character character
+## 365                    Ref_PSEQQ6   numeric character   numeric
+## 366                    Ref_PSEQQ7 character character character
+## 367                    Ref_PSEQQ8   numeric character   numeric
+## 368                    Ref_PSEQQ9 character character character
+## 369               Ref_PSEQTot_sev      &lt;NA&gt; character      &lt;NA&gt;
+## 370                 Ref_PSEQTotal character character character
+## 371        Ref_PSEQTotal_severity      &lt;NA&gt;      &lt;NA&gt; character
+## 372                Ref_SentStatus   numeric   numeric   numeric
+## 373          Ref_SurveyCategoryID   numeric   numeric   numeric
+## 374                 Ref_SurveyKey character character character
+## 375          Ref_SurveyScheduleID   numeric   numeric   numeric
+## 376                    Ref_Weight   numeric   numeric   numeric
+## 377         Ref_WorkHoursAffected   numeric   numeric   numeric
+## 378          Ref_WorkTypeAffected   numeric   numeric   numeric
+## 379             Ref_WPAI_Employed   numeric      &lt;NA&gt;   numeric
+## 380       Ref_WPAI_EmployedStatus   numeric      &lt;NA&gt;   numeric
+## 381          Ref_WPAI_HoursMissed character      &lt;NA&gt; character
+## 382          Ref_WPAI_HoursWorked character      &lt;NA&gt; character
+## 383     Ref_WPAI_NotEmployedCause   numeric      &lt;NA&gt;   numeric
+## 384     Ref_WPAI_ProductivityLost character      &lt;NA&gt; character
+## 385                  ReferralDate character character character
+## 386                ReferralSource   numeric   numeric   numeric
+## 387           ReferralSourceOther character   logical character
+## 388                           Sex   numeric   numeric   numeric
+## 389                           SLK character character      &lt;NA&gt;
+## 390                         State   numeric   numeric   numeric
+## 391                     temp_days   numeric   numeric      &lt;NA&gt;
+## 392               TorresStraitIsl   numeric   numeric   numeric
+## 393                       Urgency   numeric      &lt;NA&gt;   numeric</code></pre>
+<p>Since I want to analyse all the data, I can simply opt to <strong>only</strong> retain variables that are common to each dataframe. The first step here will be to store the names of those common variables in a character vector.</p>
+<pre class="r"><code>matching_vars&lt;- data_comparison %&gt;% dplyr::filter_at(vars(-column_name), all_vars(!is.na(.))) %&gt;% 
+  dplyr::select(column_name) %&gt;% dplyr::pull(1)
+
+matching_vars</code></pre>
+<pre><code>##   [1] &quot;Aboriginal&quot;                    &quot;CancerPain&quot;                   
+##   [3] &quot;CMAnaemia&quot;                     &quot;CMBloodPressure&quot;              
+##   [5] &quot;CMCancer&quot;                      &quot;CMDepression&quot;                 
+##   [7] &quot;CMDiabetes&quot;                    &quot;CMHeart&quot;                      
+##   [9] &quot;CMKidney&quot;                      &quot;CMLung&quot;                       
+##  [11] &quot;CMOsteoarthritis&quot;              &quot;CMOther&quot;                      
+##  [13] &quot;CMRheumatoid&quot;                  &quot;CMStroke&quot;                     
+##  [15] &quot;CMUlcer&quot;                       &quot;CommunicationAssist&quot;          
+##  [17] &quot;ComorbiditiesOther&quot;            &quot;CompensationCase&quot;             
+##  [19] &quot;CompensationCaseType&quot;          &quot;CompensationOtherDetail&quot;      
+##  [21] &quot;CountryOfBirth&quot;                &quot;CountryOfBirthOther&quot;          
+##  [23] &quot;DOB&quot;                           &quot;EEnd_BPIActivity&quot;             
+##  [25] &quot;EEnd_BPIAverage&quot;               &quot;EEnd_BPIEnjoyment&quot;            
+##  [27] &quot;EEnd_BPILeast&quot;                 &quot;EEnd_BPIMainPain&quot;             
+##  [29] &quot;EEnd_BPIMood&quot;                  &quot;EEnd_BPINow&quot;                  
+##  [31] &quot;EEnd_BPIPainInterference&quot;      &quot;EEnd_BPIPainInterferenceEmpty&quot;
+##  [33] &quot;EEnd_BPIPainSeverity&quot;          &quot;EEnd_BPIPainSeverityEmpty&quot;    
+##  [35] &quot;EEnd_BPIRelations&quot;             &quot;EEnd_BPISleep&quot;                
+##  [37] &quot;EEnd_BPIWalking&quot;               &quot;EEnd_BPIWork&quot;                 
+##  [39] &quot;EEnd_BPIWorst&quot;                 &quot;EEnd_CompDate&quot;                
+##  [41] &quot;EEnd_CompStatus&quot;               &quot;EEnd_CountAnalgAll&quot;           
+##  [43] &quot;EEnd_CountAnalgExOpi&quot;          &quot;EEnd_DailyMorphine&quot;           
+##  [45] &quot;EEnd_DASSAnxiety&quot;              &quot;EEnd_DASSAnxietyEmpty&quot;        
+##  [47] &quot;EEnd_DASSDepression&quot;           &quot;EEnd_DASSDepressionEmpty&quot;     
+##  [49] &quot;EEnd_DASSQ1&quot;                   &quot;EEnd_DASSQ10&quot;                 
+##  [51] &quot;EEnd_DASSQ11&quot;                  &quot;EEnd_DASSQ12&quot;                 
+##  [53] &quot;EEnd_DASSQ13&quot;                  &quot;EEnd_DASSQ14&quot;                 
+##  [55] &quot;EEnd_DASSQ15&quot;                  &quot;EEnd_DASSQ16&quot;                 
+##  [57] &quot;EEnd_DASSQ17&quot;                  &quot;EEnd_DASSQ18&quot;                 
+##  [59] &quot;EEnd_DASSQ19&quot;                  &quot;EEnd_DASSQ2&quot;                  
+##  [61] &quot;EEnd_DASSQ20&quot;                  &quot;EEnd_DASSQ21&quot;                 
+##  [63] &quot;EEnd_DASSQ3&quot;                   &quot;EEnd_DASSQ4&quot;                  
+##  [65] &quot;EEnd_DASSQ5&quot;                   &quot;EEnd_DASSQ6&quot;                  
+##  [67] &quot;EEnd_DASSQ7&quot;                   &quot;EEnd_DASSQ8&quot;                  
+##  [69] &quot;EEnd_DASSQ9&quot;                   &quot;EEnd_DASSStress&quot;              
+##  [71] &quot;EEnd_DASSStressEmpty&quot;          &quot;EEnd_DASSTotal&quot;               
+##  [73] &quot;EEnd_DASSTotalEmpty&quot;           &quot;EEnd_EFullTime&quot;               
+##  [75] &quot;EEnd_EHomeDuties&quot;              &quot;EEnd_ELeavePain&quot;              
+##  [77] &quot;EEnd_ELimitedHours&quot;            &quot;EEnd_EPartTime&quot;               
+##  [79] &quot;EEnd_ERetired&quot;                 &quot;EEnd_ERetraining&quot;             
+##  [81] &quot;EEnd_EStudy&quot;                   &quot;EEnd_EUnemployedNotPain&quot;      
+##  [83] &quot;EEnd_EUnemployedPain&quot;          &quot;EEnd_EVoluntary&quot;              
+##  [85] &quot;EEnd_GenDate&quot;                  &quot;EEnd_Height&quot;                  
+##  [87] &quot;EEnd_HoursWorked&quot;              &quot;EEnd_HSUAlliedHealth&quot;         
+##  [89] &quot;EEnd_HSUDiagnosticTests&quot;       &quot;EEnd_HSUED&quot;                   
+##  [91] &quot;EEnd_HSUGP&quot;                    &quot;EEnd_HSUHospital&quot;             
+##  [93] &quot;EEnd_HSUSpecialist&quot;            &quot;EEnd_OpioidFreq&quot;              
+##  [95] &quot;EEnd_OpioidMaint&quot;              &quot;EEnd_PainDescription&quot;         
+##  [97] &quot;EEnd_PCSHelplessness&quot;          &quot;EEnd_PCSHelplessnessEmpty&quot;    
+##  [99] &quot;EEnd_PCSMagnification&quot;         &quot;EEnd_PCSMagnificationEmpty&quot;   
+## [101] &quot;EEnd_PCSQ1&quot;                    &quot;EEnd_PCSQ10&quot;                  
+## [103] &quot;EEnd_PCSQ11&quot;                   &quot;EEnd_PCSQ12&quot;                  
+## [105] &quot;EEnd_PCSQ13&quot;                   &quot;EEnd_PCSQ2&quot;                   
+## [107] &quot;EEnd_PCSQ3&quot;                    &quot;EEnd_PCSQ4&quot;                   
+## [109] &quot;EEnd_PCSQ5&quot;                    &quot;EEnd_PCSQ6&quot;                   
+## [111] &quot;EEnd_PCSQ7&quot;                    &quot;EEnd_PCSQ8&quot;                   
+## [113] &quot;EEnd_PCSQ9&quot;                    &quot;EEnd_PCSRumination&quot;           
+## [115] &quot;EEnd_PCSRuminationEmpty&quot;       &quot;EEnd_PCSTotal&quot;                
+## [117] &quot;EEnd_PCSTotalEmpty&quot;            &quot;EEnd_PSEQEmpty&quot;               
+## [119] &quot;EEnd_PSEQQ1&quot;                   &quot;EEnd_PSEQQ10&quot;                 
+## [121] &quot;EEnd_PSEQQ2&quot;                   &quot;EEnd_PSEQQ3&quot;                  
+## [123] &quot;EEnd_PSEQQ4&quot;                   &quot;EEnd_PSEQQ5&quot;                  
+## [125] &quot;EEnd_PSEQQ6&quot;                   &quot;EEnd_PSEQQ7&quot;                  
+## [127] &quot;EEnd_PSEQQ8&quot;                   &quot;EEnd_PSEQQ9&quot;                  
+## [129] &quot;EEnd_PSEQTotal&quot;                &quot;EEnd_SentStatus&quot;              
+## [131] &quot;EEnd_SurveyCategoryID&quot;         &quot;EEnd_SurveyKey&quot;               
+## [133] &quot;EEnd_SurveyScheduleID&quot;         &quot;EEnd_Weight&quot;                  
+## [135] &quot;EEnd_WorkHoursAffected&quot;        &quot;EEnd_WorkTypeAffected&quot;        
+## [137] &quot;EpisodeEndDate&quot;                &quot;EpisodeEndMode&quot;               
+## [139] &quot;EpisodeEndModeOther&quot;           &quot;EpisodeID&quot;                    
+## [141] &quot;EpisodeStartDate&quot;              &quot;EpisodeStartMode&quot;             
+## [143] &quot;FacilityID&quot;                    &quot;HearingSightImpaired&quot;         
+## [145] &quot;InterpreterLanguage&quot;           &quot;InterpreterReqd&quot;              
+## [147] &quot;Maori&quot;                         &quot;NonIndigenous&quot;                
+## [149] &quot;PainDuration&quot;                  &quot;PainSource&quot;                   
+## [151] &quot;PainSourceOtherDetail&quot;         &quot;Patient.Identifier&quot;           
+## [153] &quot;PatientID&quot;                     &quot;Postcode&quot;                     
+## [155] &quot;Ref_BPIActivity&quot;               &quot;Ref_BPIAverage&quot;               
+## [157] &quot;Ref_BPIEnjoyment&quot;              &quot;Ref_BPILeast&quot;                 
+## [159] &quot;Ref_BPIMainPain&quot;               &quot;Ref_BPIMood&quot;                  
+## [161] &quot;Ref_BPINow&quot;                    &quot;Ref_BPIPainInterference&quot;      
+## [163] &quot;Ref_BPIPainInterferenceEmpty&quot;  &quot;Ref_BPIPainSeverity&quot;          
+## [165] &quot;Ref_BPIPainSeverityEmpty&quot;      &quot;Ref_BPIRelations&quot;             
+## [167] &quot;Ref_BPISleep&quot;                  &quot;Ref_BPIWalking&quot;               
+## [169] &quot;Ref_BPIWork&quot;                   &quot;Ref_BPIWorst&quot;                 
+## [171] &quot;Ref_CompDate&quot;                  &quot;Ref_CompStatus&quot;               
+## [173] &quot;Ref_CountAnalgAll&quot;             &quot;Ref_CountAnalgExOpi&quot;          
+## [175] &quot;Ref_DailyMorphine&quot;             &quot;Ref_DASSAnxiety&quot;              
+## [177] &quot;Ref_DASSAnxietyEmpty&quot;          &quot;Ref_DASSDepression&quot;           
+## [179] &quot;Ref_DASSDepressionEmpty&quot;       &quot;Ref_DASSQ1&quot;                   
+## [181] &quot;Ref_DASSQ10&quot;                   &quot;Ref_DASSQ11&quot;                  
+## [183] &quot;Ref_DASSQ12&quot;                   &quot;Ref_DASSQ13&quot;                  
+## [185] &quot;Ref_DASSQ14&quot;                   &quot;Ref_DASSQ15&quot;                  
+## [187] &quot;Ref_DASSQ16&quot;                   &quot;Ref_DASSQ17&quot;                  
+## [189] &quot;Ref_DASSQ18&quot;                   &quot;Ref_DASSQ19&quot;                  
+## [191] &quot;Ref_DASSQ2&quot;                    &quot;Ref_DASSQ20&quot;                  
+## [193] &quot;Ref_DASSQ21&quot;                   &quot;Ref_DASSQ3&quot;                   
+## [195] &quot;Ref_DASSQ4&quot;                    &quot;Ref_DASSQ5&quot;                   
+## [197] &quot;Ref_DASSQ6&quot;                    &quot;Ref_DASSQ7&quot;                   
+## [199] &quot;Ref_DASSQ8&quot;                    &quot;Ref_DASSQ9&quot;                   
+## [201] &quot;Ref_DASSStress&quot;                &quot;Ref_DASSStressEmpty&quot;          
+## [203] &quot;Ref_DASSTotal&quot;                 &quot;Ref_DASSTotalEmpty&quot;           
+## [205] &quot;Ref_EFullTime&quot;                 &quot;Ref_EHomeDuties&quot;              
+## [207] &quot;Ref_ELeavePain&quot;                &quot;Ref_ELimitedHours&quot;            
+## [209] &quot;Ref_EPartTime&quot;                 &quot;Ref_ERetired&quot;                 
+## [211] &quot;Ref_ERetraining&quot;               &quot;Ref_EStudy&quot;                   
+## [213] &quot;Ref_EUnemployedNotPain&quot;        &quot;Ref_EUnemployedPain&quot;          
+## [215] &quot;Ref_EVoluntary&quot;                &quot;Ref_GenDate&quot;                  
+## [217] &quot;Ref_Height&quot;                    &quot;Ref_HoursWorked&quot;              
+## [219] &quot;Ref_HSUAlliedHealth&quot;           &quot;Ref_HSUDiagnosticTests&quot;       
+## [221] &quot;Ref_HSUED&quot;                     &quot;Ref_HSUGP&quot;                    
+## [223] &quot;Ref_HSUHospital&quot;               &quot;Ref_HSUSpecialist&quot;            
+## [225] &quot;Ref_OpioidFreq&quot;                &quot;Ref_OpioidMaint&quot;              
+## [227] &quot;Ref_PainDescription&quot;           &quot;Ref_PCSHelplessness&quot;          
+## [229] &quot;Ref_PCSHelplessnessEmpty&quot;      &quot;Ref_PCSMagnification&quot;         
+## [231] &quot;Ref_PCSMagnificationEmpty&quot;     &quot;Ref_PCSQ1&quot;                    
+## [233] &quot;Ref_PCSQ10&quot;                    &quot;Ref_PCSQ11&quot;                   
+## [235] &quot;Ref_PCSQ12&quot;                    &quot;Ref_PCSQ13&quot;                   
+## [237] &quot;Ref_PCSQ2&quot;                     &quot;Ref_PCSQ3&quot;                    
+## [239] &quot;Ref_PCSQ4&quot;                     &quot;Ref_PCSQ5&quot;                    
+## [241] &quot;Ref_PCSQ6&quot;                     &quot;Ref_PCSQ7&quot;                    
+## [243] &quot;Ref_PCSQ8&quot;                     &quot;Ref_PCSQ9&quot;                    
+## [245] &quot;Ref_PCSRumination&quot;             &quot;Ref_PCSRuminationEmpty&quot;       
+## [247] &quot;Ref_PCSTotal&quot;                  &quot;Ref_PCSTotalEmpty&quot;            
+## [249] &quot;Ref_PSEQEmpty&quot;                 &quot;Ref_PSEQQ1&quot;                   
+## [251] &quot;Ref_PSEQQ10&quot;                   &quot;Ref_PSEQQ2&quot;                   
+## [253] &quot;Ref_PSEQQ3&quot;                    &quot;Ref_PSEQQ4&quot;                   
+## [255] &quot;Ref_PSEQQ5&quot;                    &quot;Ref_PSEQQ6&quot;                   
+## [257] &quot;Ref_PSEQQ7&quot;                    &quot;Ref_PSEQQ8&quot;                   
+## [259] &quot;Ref_PSEQQ9&quot;                    &quot;Ref_PSEQTotal&quot;                
+## [261] &quot;Ref_SentStatus&quot;                &quot;Ref_SurveyCategoryID&quot;         
+## [263] &quot;Ref_SurveyKey&quot;                 &quot;Ref_SurveyScheduleID&quot;         
+## [265] &quot;Ref_Weight&quot;                    &quot;Ref_WorkHoursAffected&quot;        
+## [267] &quot;Ref_WorkTypeAffected&quot;          &quot;ReferralDate&quot;                 
+## [269] &quot;ReferralSource&quot;                &quot;ReferralSourceOther&quot;          
+## [271] &quot;Sex&quot;                           &quot;State&quot;                        
+## [273] &quot;TorresStraitIsl&quot;</code></pre>
+<p>I then use <code>map()</code> once again, to iterate through each dataframe and select only these variables</p>
+<pre class="r"><code>pain_data_complete&lt;- pain_data_raw %&gt;% purrr::map(~dplyr::select(.x, matching_vars))</code></pre>
+<p>To be sure it worked, I can check that each dataframe now has the same number of columns.</p>
+<pre class="r"><code>purrr::map_dbl(pain_data_complete, ncol)</code></pre>
+<pre><code>## early_19   mid_17   mid_18 
+##      273      273      273</code></pre>
+<p>Success!!!</p>
+<p>Having succeeded at importing and merging the data, it is a good idea to store the above steps into a reusable function.</p>
+<pre class="r"><code>import_data&lt;- function() {
+
+csv_files&lt;- fs::dir_ls(here(), regexp = &quot;\\.csv$&quot;)
+
+pain_data_raw&lt;- csv_files %&gt;% purrr::map( ~readr::read_csv(.x, col_types = cols(.default = &quot;c&quot;))) %&gt;% 
+  purrr::set_names(&quot;early_19&quot;, &quot;mid_17&quot;, &quot;mid_18&quot;)
+
+data_comparison&lt;- janitor::compare_df_cols(pain_data_raw)
+
+matching_vars&lt;- data_comparison %&gt;% dplyr::filter_at(vars(-column_name), all_vars(!is.na(.))) %&gt;% 
+  dplyr::select(column_name) %&gt;% dplyr::pull(1)
+
+pain_data_complete&lt;- pain_data_raw %&gt;% purrr::map(~dplyr::select(.x, matching_vars))
+
+joined_data&lt;- dplyr::bind_rows(pain_data_complete)
+
+}</code></pre>
+<p>Test that it works</p>
+<pre class="r"><code>joined_data&lt;- import_data()
+
+glimpse(joined_data)</code></pre>
+<pre><code>## Observations: 275
+## Variables: 273
+## $ Aboriginal                    &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CancerPain                    &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ CMAnaemia                     &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMBloodPressure               &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMCancer                      &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMDepression                  &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, NA, &quot;1&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMDiabetes                    &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMHeart                       &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMKidney                      &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMLung                        &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMOsteoarthritis              &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMOther                       &lt;chr&gt; &quot;1&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMRheumatoid                  &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMStroke                      &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CMUlcer                       &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ CommunicationAssist           &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ ComorbiditiesOther            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA…
+## $ CompensationCase              &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;,…
+## $ CompensationCaseType          &lt;chr&gt; &quot;9&quot;, &quot;9&quot;, &quot;9&quot;, &quot;3&quot;, &quot;9&quot;, &quot;1&quot;, &quot;-4&quot;…
+## $ CompensationOtherDetail       &lt;chr&gt; &quot;Worksafe&quot;, &quot;Worksafe&quot;, &quot;TAC&quot;, NA,…
+## $ CountryOfBirth                &lt;chr&gt; &quot;9&quot;, &quot;1&quot;, &quot;1&quot;, &quot;2&quot;, &quot;1&quot;, &quot;1&quot;, &quot;9&quot;,…
+## $ CountryOfBirthOther           &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;Germany&quot;,…
+## $ DOB                           &lt;chr&gt; &quot;6/10/82&quot;, &quot;6/12/66&quot;, &quot;30/8/94&quot;, &quot;…
+## $ EEnd_BPIActivity              &lt;chr&gt; &quot;5&quot;, &quot;3&quot;, &quot;4&quot;, &quot;3&quot;, &quot;10&quot;, &quot;8&quot;, &quot;4&quot;…
+## $ EEnd_BPIAverage               &lt;chr&gt; &quot;6&quot;, &quot;5&quot;, &quot;5&quot;, &quot;3&quot;, &quot;8&quot;, &quot;7&quot;, &quot;4&quot;,…
+## $ EEnd_BPIEnjoyment             &lt;chr&gt; &quot;9&quot;, &quot;3&quot;, &quot;3&quot;, &quot;7&quot;, &quot;10&quot;, &quot;5&quot;, &quot;3&quot;…
+## $ EEnd_BPILeast                 &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;2&quot;, &quot;1&quot;, &quot;8&quot;, &quot;4&quot;, &quot;1&quot;,…
+## $ EEnd_BPIMainPain              &lt;chr&gt; &quot;81&quot;, &quot;78&quot;, &quot;83&quot;, &quot;83&quot;, &quot;65&quot;, &quot;83&quot;…
+## $ EEnd_BPIMood                  &lt;chr&gt; &quot;8&quot;, &quot;6&quot;, &quot;7&quot;, &quot;6&quot;, &quot;10&quot;, &quot;5&quot;, &quot;5&quot;…
+## $ EEnd_BPINow                   &lt;chr&gt; &quot;7&quot;, &quot;6&quot;, &quot;4&quot;, &quot;1&quot;, &quot;8&quot;, &quot;7&quot;, &quot;2&quot;,…
+## $ EEnd_BPIPainInterference      &lt;chr&gt; &quot;6.5714&quot;, &quot;5&quot;, &quot;3.7143&quot;, &quot;5.4286&quot;,…
+## $ EEnd_BPIPainInterferenceEmpty &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_BPIPainSeverity          &lt;chr&gt; &quot;6&quot;, &quot;5.25&quot;, &quot;4.75&quot;, &quot;3.25&quot;, &quot;8.25…
+## $ EEnd_BPIPainSeverityEmpty     &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_BPIRelations             &lt;chr&gt; &quot;7&quot;, &quot;7&quot;, &quot;4&quot;, &quot;8&quot;, &quot;10&quot;, &quot;5&quot;, &quot;4&quot;…
+## $ EEnd_BPISleep                 &lt;chr&gt; &quot;7&quot;, &quot;9&quot;, &quot;4&quot;, &quot;9&quot;, &quot;9&quot;, &quot;5&quot;, &quot;1&quot;,…
+## $ EEnd_BPIWalking               &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;10&quot;, &quot;8&quot;, &quot;3&quot;…
+## $ EEnd_BPIWork                  &lt;chr&gt; &quot;9&quot;, &quot;6&quot;, &quot;3&quot;, &quot;2&quot;, &quot;10&quot;, &quot;10&quot;, &quot;3…
+## $ EEnd_BPIWorst                 &lt;chr&gt; &quot;8&quot;, &quot;8&quot;, &quot;8&quot;, &quot;8&quot;, &quot;9&quot;, &quot;10&quot;, &quot;7&quot;…
+## $ EEnd_CompDate                 &lt;chr&gt; &quot;16/1/18&quot;, &quot;16/4/18&quot;, &quot;14/2/18&quot;, &quot;…
+## $ EEnd_CompStatus               &lt;chr&gt; &quot;6&quot;, &quot;6&quot;, &quot;6&quot;, &quot;6&quot;, &quot;6&quot;, &quot;6&quot;, &quot;6&quot;,…
+## $ EEnd_CountAnalgAll            &lt;chr&gt; &quot;0&quot;, &quot;4&quot;, &quot;.&quot;, &quot;.&quot;, &quot;3&quot;, &quot;2&quot;, &quot;1&quot;,…
+## $ EEnd_CountAnalgExOpi          &lt;chr&gt; &quot;-2&quot;, &quot;.&quot;, &quot;.&quot;, &quot;.&quot;, &quot;.&quot;, &quot;.&quot;, &quot;.&quot;…
+## $ EEnd_DailyMorphine            &lt;chr&gt; &quot;0&quot;, &quot;40&quot;, &quot;-4&quot;, &quot;-4&quot;, &quot;30&quot;, &quot;0&quot;, …
+## $ EEnd_DASSAnxiety              &lt;chr&gt; &quot;28&quot;, &quot;4&quot;, &quot;8&quot;, &quot;0&quot;, &quot;30&quot;, &quot;0&quot;, &quot;8…
+## $ EEnd_DASSAnxietyEmpty         &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_DASSDepression           &lt;chr&gt; &quot;40&quot;, &quot;12&quot;, &quot;16&quot;, &quot;14&quot;, &quot;42&quot;, &quot;2&quot;,…
+## $ EEnd_DASSDepressionEmpty      &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_DASSQ1                   &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;2&quot;, &quot;1&quot;, &quot;3&quot;, &quot;1&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ10                  &lt;chr&gt; &quot;3&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ11                  &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;2&quot;, &quot;1&quot;, &quot;3&quot;, &quot;1&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ12                  &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;2&quot;, &quot;1&quot;, &quot;3&quot;, &quot;1&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ13                  &lt;chr&gt; &quot;3&quot;, &quot;1&quot;, &quot;2&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ14                  &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;3&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;2&quot;,…
+## $ EEnd_DASSQ15                  &lt;chr&gt; &quot;3&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_DASSQ16                  &lt;chr&gt; &quot;2&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ17                  &lt;chr&gt; &quot;3&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;2&quot;,…
+## $ EEnd_DASSQ18                  &lt;chr&gt; &quot;3&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_DASSQ19                  &lt;chr&gt; &quot;3&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ2                   &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;0&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_DASSQ20                  &lt;chr&gt; &quot;2&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;2&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ21                  &lt;chr&gt; &quot;3&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ3                   &lt;chr&gt; &quot;3&quot;, &quot;0&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ4                   &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ5                   &lt;chr&gt; &quot;3&quot;, &quot;1&quot;, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;1&quot;, &quot;3&quot;,…
+## $ EEnd_DASSQ6                   &lt;chr&gt; &quot;3&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_DASSQ7                   &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_DASSQ8                   &lt;chr&gt; &quot;3&quot;, &quot;1&quot;, &quot;2&quot;, &quot;2&quot;, &quot;3&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ EEnd_DASSQ9                   &lt;chr&gt; &quot;3&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;2&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ EEnd_DASSStress               &lt;chr&gt; &quot;42&quot;, &quot;22&quot;, &quot;26&quot;, &quot;12&quot;, &quot;42&quot;, &quot;6&quot;,…
+## $ EEnd_DASSStressEmpty          &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_DASSTotal                &lt;chr&gt; &quot;110&quot;, &quot;38&quot;, &quot;50&quot;, &quot;26&quot;, &quot;114&quot;, &quot;8…
+## $ EEnd_DASSTotalEmpty           &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_EFullTime                &lt;chr&gt; &quot;0&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_EHomeDuties              &lt;chr&gt; &quot;0&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_ELeavePain               &lt;chr&gt; &quot;0&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_ELimitedHours            &lt;chr&gt; &quot;0&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_EPartTime                &lt;chr&gt; &quot;0&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_ERetired                 &lt;chr&gt; &quot;0&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_ERetraining              &lt;chr&gt; &quot;0&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_EStudy                   &lt;chr&gt; &quot;1&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_EUnemployedNotPain       &lt;chr&gt; &quot;0&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_EUnemployedPain          &lt;chr&gt; &quot;1&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_EVoluntary               &lt;chr&gt; &quot;0&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_GenDate                  &lt;chr&gt; &quot;19/12/17&quot;, &quot;10/4/18&quot;, &quot;7/2/18&quot;, &quot;…
+## $ EEnd_Height                   &lt;chr&gt; &quot;-2&quot;, &quot;170&quot;, &quot;165&quot;, &quot;185&quot;, &quot;179&quot;, …
+## $ EEnd_HoursWorked              &lt;chr&gt; &quot;-2&quot;, &quot;.&quot;, &quot;.&quot;, &quot;.&quot;, &quot;.&quot;, &quot;.&quot;, &quot;.&quot;…
+## $ EEnd_HSUAlliedHealth          &lt;chr&gt; &quot;0&quot;, &quot;4&quot;, &quot;4&quot;, &quot;4&quot;, &quot;30&quot;, &quot;5&quot;, &quot;8&quot;…
+## $ EEnd_HSUDiagnosticTests       &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_HSUED                    &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_HSUGP                    &lt;chr&gt; &quot;0&quot;, &quot;3&quot;, &quot;1&quot;, &quot;0&quot;, &quot;15&quot;, &quot;2&quot;, &quot;7&quot;…
+## $ EEnd_HSUHospital              &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_HSUSpecialist            &lt;chr&gt; &quot;0&quot;, &quot;2&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ EEnd_OpioidFreq               &lt;chr&gt; &quot;0&quot;, &quot;1&quot;, &quot;-4&quot;, &quot;-4&quot;, &quot;1&quot;, &quot;0&quot;, &quot;1…
+## $ EEnd_OpioidMaint              &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;-4&quot;, &quot;-4&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0…
+## $ EEnd_PainDescription          &lt;chr&gt; &quot;2&quot;, &quot;2&quot;, &quot;3&quot;, &quot;2&quot;, &quot;1&quot;, &quot;3&quot;, &quot;3&quot;,…
+## $ EEnd_PCSHelplessness          &lt;chr&gt; &quot;23&quot;, &quot;8&quot;, &quot;8&quot;, &quot;6&quot;, &quot;24&quot;, &quot;10&quot;, &quot;…
+## $ EEnd_PCSHelplessnessEmpty     &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_PCSMagnification         &lt;chr&gt; &quot;12&quot;, &quot;1&quot;, &quot;2&quot;, &quot;1&quot;, &quot;10&quot;, &quot;5&quot;, &quot;0…
+## $ EEnd_PCSMagnificationEmpty    &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_PCSQ1                    &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;2&quot;, &quot;0&quot;, &quot;4&quot;, &quot;2&quot;, &quot;1&quot;,…
+## $ EEnd_PCSQ10                   &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;2&quot;, &quot;1&quot;,…
+## $ EEnd_PCSQ11                   &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;3&quot;, &quot;4&quot;, &quot;4&quot;, &quot;2&quot;, &quot;1&quot;,…
+## $ EEnd_PCSQ12                   &lt;chr&gt; &quot;3&quot;, &quot;1&quot;, &quot;2&quot;, &quot;2&quot;, &quot;4&quot;, &quot;2&quot;, &quot;0&quot;,…
+## $ EEnd_PCSQ13                   &lt;chr&gt; &quot;4&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;3&quot;, &quot;3&quot;, &quot;0&quot;,…
+## $ EEnd_PCSQ2                    &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;4&quot;, &quot;1&quot;, &quot;1&quot;,…
+## $ EEnd_PCSQ3                    &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;4&quot;, &quot;3&quot;, &quot;1&quot;,…
+## $ EEnd_PCSQ4                    &lt;chr&gt; &quot;4&quot;, &quot;3&quot;, &quot;1&quot;, &quot;3&quot;, &quot;4&quot;, &quot;1&quot;, &quot;1&quot;,…
+## $ EEnd_PCSQ5                    &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;4&quot;, &quot;1&quot;, &quot;1&quot;,…
+## $ EEnd_PCSQ6                    &lt;chr&gt; &quot;4&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;4&quot;, &quot;2&quot;, &quot;0&quot;,…
+## $ EEnd_PCSQ7                    &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_PCSQ8                    &lt;chr&gt; &quot;4&quot;, &quot;0&quot;, &quot;2&quot;, &quot;1&quot;, &quot;4&quot;, &quot;2&quot;, &quot;2&quot;,…
+## $ EEnd_PCSQ9                    &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;1&quot;, &quot;4&quot;, &quot;4&quot;, &quot;1&quot;, &quot;1&quot;,…
+## $ EEnd_PCSRumination            &lt;chr&gt; &quot;16&quot;, &quot;3&quot;, &quot;7&quot;, &quot;11&quot;, &quot;15&quot;, &quot;7&quot;, &quot;…
+## $ EEnd_PCSRuminationEmpty       &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_PCSTotal                 &lt;chr&gt; &quot;51&quot;, &quot;12&quot;, &quot;17&quot;, &quot;18&quot;, &quot;49&quot;, &quot;22&quot;…
+## $ EEnd_PCSTotalEmpty            &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_PSEQEmpty                &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ EEnd_PSEQQ1                   &lt;chr&gt; &quot;0&quot;, &quot;4&quot;, &quot;5&quot;, &quot;5&quot;, &quot;0&quot;, &quot;1&quot;, &quot;5&quot;,…
+## $ EEnd_PSEQQ10                  &lt;chr&gt; &quot;0&quot;, &quot;4&quot;, &quot;4&quot;, &quot;4&quot;, &quot;0&quot;, &quot;1&quot;, &quot;6&quot;,…
+## $ EEnd_PSEQQ2                   &lt;chr&gt; &quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;3&quot;, &quot;2&quot;, &quot;1&quot;, &quot;3&quot;,…
+## $ EEnd_PSEQQ3                   &lt;chr&gt; &quot;1&quot;, &quot;2&quot;, &quot;1&quot;, &quot;4&quot;, &quot;0&quot;, &quot;4&quot;, &quot;3&quot;,…
+## $ EEnd_PSEQQ4                   &lt;chr&gt; &quot;2&quot;, &quot;5&quot;, &quot;3&quot;, &quot;4&quot;, &quot;0&quot;, &quot;2&quot;, &quot;4&quot;,…
+## $ EEnd_PSEQQ5                   &lt;chr&gt; &quot;1&quot;, &quot;6&quot;, &quot;4&quot;, &quot;4&quot;, &quot;1&quot;, &quot;4&quot;, &quot;4&quot;,…
+## $ EEnd_PSEQQ6                   &lt;chr&gt; &quot;0&quot;, &quot;4&quot;, &quot;3&quot;, &quot;4&quot;, &quot;0&quot;, &quot;2&quot;, &quot;4&quot;,…
+## $ EEnd_PSEQQ7                   &lt;chr&gt; &quot;3&quot;, &quot;0&quot;, &quot;3&quot;, &quot;6&quot;, &quot;0&quot;, &quot;2&quot;, &quot;2&quot;,…
+## $ EEnd_PSEQQ8                   &lt;chr&gt; &quot;0&quot;, &quot;4&quot;, &quot;5&quot;, &quot;4&quot;, &quot;0&quot;, &quot;3&quot;, &quot;3&quot;,…
+## $ EEnd_PSEQQ9                   &lt;chr&gt; &quot;0&quot;, &quot;5&quot;, &quot;4&quot;, &quot;4&quot;, &quot;0&quot;, &quot;3&quot;, &quot;3&quot;,…
+## $ EEnd_PSEQTotal                &lt;chr&gt; &quot;8&quot;, &quot;36&quot;, &quot;35&quot;, &quot;42&quot;, &quot;3&quot;, &quot;23&quot;, …
+## $ EEnd_SentStatus               &lt;chr&gt; &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;,…
+## $ EEnd_SurveyCategoryID         &lt;chr&gt; &quot;6&quot;, &quot;8&quot;, &quot;6&quot;, &quot;6&quot;, &quot;6&quot;, &quot;6&quot;, &quot;6&quot;,…
+## $ EEnd_SurveyKey                &lt;chr&gt; &quot;EPW11386&quot;, &quot;EPW11569&quot;, &quot;EPW11492&quot;…
+## $ EEnd_SurveyScheduleID         &lt;chr&gt; &quot;1386&quot;, &quot;1569&quot;, &quot;1492&quot;, &quot;2014&quot;, &quot;1…
+## $ EEnd_Weight                   &lt;chr&gt; &quot;66&quot;, &quot;72&quot;, &quot;80&quot;, &quot;96&quot;, &quot;78&quot;, &quot;105…
+## $ EEnd_WorkHoursAffected        &lt;chr&gt; &quot;1&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EEnd_WorkTypeAffected         &lt;chr&gt; &quot;1&quot;, NA, NA, NA, NA, NA, NA, NA, N…
+## $ EpisodeEndDate                &lt;chr&gt; &quot;19/12/17&quot;, &quot;11/4/18&quot;, &quot;18/1/18&quot;, …
+## $ EpisodeEndMode                &lt;chr&gt; &quot;5&quot;, &quot;5&quot;, &quot;1&quot;, &quot;5&quot;, &quot;5&quot;, &quot;5&quot;, &quot;5&quot;,…
+## $ EpisodeEndModeOther           &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA…
+## $ EpisodeID                     &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;2&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;,…
+## $ EpisodeStartDate              &lt;chr&gt; &quot;1/5/17&quot;, &quot;4/5/17&quot;, &quot;13/7/17&quot;, &quot;3/…
+## $ EpisodeStartMode              &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;4&quot;, &quot;1&quot;, &quot;3&quot;, &quot;1&quot;,…
+## $ FacilityID                    &lt;chr&gt; &quot;EPW1&quot;, &quot;EPW1&quot;, &quot;EPW1&quot;, &quot;EPW1&quot;, &quot;E…
+## $ HearingSightImpaired          &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ InterpreterLanguage           &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA…
+## $ InterpreterReqd               &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Maori                         &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ NonIndigenous                 &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, NA, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, …
+## $ PainDuration                  &lt;chr&gt; &quot;4&quot;, &quot;4&quot;, &quot;4&quot;, &quot;4&quot;, &quot;3&quot;, &quot;3&quot;, &quot;2&quot;,…
+## $ PainSource                    &lt;chr&gt; &quot;2&quot;, &quot;2&quot;, &quot;5&quot;, &quot;5&quot;, &quot;2&quot;, &quot;2&quot;, &quot;4&quot;,…
+## $ PainSourceOtherDetail         &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA…
+## $ Patient.Identifier            &lt;chr&gt; &quot;CW&quot;, &quot;RW&quot;, &quot;RT&quot;, &quot;RT&quot;, &quot;CW&quot;, &quot;CW&quot;…
+## $ PatientID                     &lt;chr&gt; &quot;243&quot;, &quot;257&quot;, &quot;284&quot;, &quot;285&quot;, &quot;300&quot;,…
+## $ Postcode                      &lt;chr&gt; &quot;3178&quot;, &quot;3032&quot;, &quot;3134&quot;, &quot;3162&quot;, &quot;3…
+## $ Ref_BPIActivity               &lt;chr&gt; &quot;10&quot;, &quot;7&quot;, &quot;7&quot;, &quot;4&quot;, &quot;7&quot;, &quot;6&quot;, &quot;7&quot;…
+## $ Ref_BPIAverage                &lt;chr&gt; &quot;5&quot;, &quot;5&quot;, &quot;5&quot;, &quot;4&quot;, &quot;7&quot;, &quot;6&quot;, &quot;4&quot;,…
+## $ Ref_BPIEnjoyment              &lt;chr&gt; &quot;10&quot;, &quot;6&quot;, &quot;6&quot;, &quot;7&quot;, &quot;9&quot;, &quot;5&quot;, &quot;8&quot;…
+## $ Ref_BPILeast                  &lt;chr&gt; &quot;2&quot;, &quot;3&quot;, &quot;2&quot;, &quot;2&quot;, &quot;7&quot;, &quot;2&quot;, &quot;2&quot;,…
+## $ Ref_BPIMainPain               &lt;chr&gt; &quot;81&quot;, &quot;60&quot;, &quot;83&quot;, &quot;83&quot;, &quot;65&quot;, &quot;83&quot;…
+## $ Ref_BPIMood                   &lt;chr&gt; &quot;10&quot;, &quot;9&quot;, &quot;8&quot;, &quot;2&quot;, &quot;7&quot;, &quot;2&quot;, &quot;9&quot;…
+## $ Ref_BPINow                    &lt;chr&gt; &quot;5&quot;, &quot;6&quot;, &quot;4&quot;, &quot;2&quot;, &quot;7&quot;, &quot;2&quot;, &quot;6&quot;,…
+## $ Ref_BPIPainInterference       &lt;chr&gt; &quot;8&quot;, &quot;6.7143&quot;, &quot;5.5714&quot;, &quot;4&quot;, &quot;7.8…
+## $ Ref_BPIPainInterferenceEmpty  &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_BPIPainSeverity           &lt;chr&gt; &quot;4.75&quot;, &quot;5.5&quot;, &quot;4.75&quot;, &quot;3.75&quot;, &quot;7.…
+## $ Ref_BPIPainSeverityEmpty      &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_BPIRelations              &lt;chr&gt; &quot;10&quot;, &quot;6&quot;, &quot;3&quot;, &quot;10&quot;, &quot;8&quot;, &quot;6&quot;, &quot;8…
+## $ Ref_BPISleep                  &lt;chr&gt; &quot;6&quot;, &quot;9&quot;, &quot;5&quot;, &quot;1&quot;, &quot;9&quot;, &quot;5&quot;, &quot;2&quot;,…
+## $ Ref_BPIWalking                &lt;chr&gt; &quot;0&quot;, &quot;4&quot;, &quot;3&quot;, &quot;2&quot;, &quot;7&quot;, &quot;8&quot;, &quot;8&quot;,…
+## $ Ref_BPIWork                   &lt;chr&gt; &quot;10&quot;, &quot;6&quot;, &quot;7&quot;, &quot;2&quot;, &quot;8&quot;, &quot;6&quot;, &quot;10…
+## $ Ref_BPIWorst                  &lt;chr&gt; &quot;7&quot;, &quot;8&quot;, &quot;8&quot;, &quot;7&quot;, &quot;9&quot;, &quot;8&quot;, &quot;8&quot;,…
+## $ Ref_CompDate                  &lt;chr&gt; &quot;1/5/17&quot;, &quot;2/6/17&quot;, &quot;12/7/17&quot;, &quot;18…
+## $ Ref_CompStatus                &lt;chr&gt; &quot;6&quot;, &quot;6&quot;, &quot;6&quot;, &quot;6&quot;, &quot;6&quot;, &quot;6&quot;, &quot;6&quot;,…
+## $ Ref_CountAnalgAll             &lt;chr&gt; &quot;0&quot;, &quot;3&quot;, &quot;3&quot;, &quot;.&quot;, &quot;3&quot;, &quot;1&quot;, &quot;2&quot;,…
+## $ Ref_CountAnalgExOpi           &lt;chr&gt; &quot;-2&quot;, &quot;-2&quot;, &quot;-2&quot;, &quot;.&quot;, &quot;-2&quot;, &quot;-2&quot;,…
+## $ Ref_DailyMorphine             &lt;chr&gt; &quot;0&quot;, &quot;9&quot;, &quot;4&quot;, &quot;-4&quot;, &quot;60&quot;, &quot;0&quot;, &quot;9…
+## $ Ref_DASSAnxiety               &lt;chr&gt; &quot;18.6667&quot;, &quot;4&quot;, &quot;8&quot;, &quot;2&quot;, &quot;28&quot;, &quot;2…
+## $ Ref_DASSAnxietyEmpty          &lt;chr&gt; &quot;1&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_DASSDepression            &lt;chr&gt; &quot;39.6667&quot;, &quot;26&quot;, &quot;16&quot;, &quot;10&quot;, &quot;42&quot;,…
+## $ Ref_DASSDepressionEmpty       &lt;chr&gt; &quot;1&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_DASSQ1                    &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;2&quot;, &quot;3&quot;, &quot;3&quot;, &quot;0&quot;, &quot;2&quot;,…
+## $ Ref_DASSQ10                   &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;3&quot;,…
+## $ Ref_DASSQ11                   &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;2&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ Ref_DASSQ12                   &lt;chr&gt; &quot;3&quot;, &quot;3&quot;, &quot;2&quot;, &quot;1&quot;, &quot;3&quot;, &quot;1&quot;, &quot;2&quot;,…
+## $ Ref_DASSQ13                   &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;2&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;3&quot;,…
+## $ Ref_DASSQ14                   &lt;chr&gt; &quot;2&quot;, &quot;2&quot;, &quot;3&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;2&quot;,…
+## $ Ref_DASSQ15                   &lt;chr&gt; &quot;2&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;2&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_DASSQ16                   &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;3&quot;,…
+## $ Ref_DASSQ17                   &lt;chr&gt; &quot;.&quot;, &quot;2&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;3&quot;,…
+## $ Ref_DASSQ18                   &lt;chr&gt; &quot;2&quot;, &quot;2&quot;, &quot;1&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ Ref_DASSQ19                   &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_DASSQ2                    &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;0&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ Ref_DASSQ20                   &lt;chr&gt; &quot;2&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;2&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_DASSQ21                   &lt;chr&gt; &quot;3&quot;, &quot;2&quot;, &quot;1&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;3&quot;,…
+## $ Ref_DASSQ3                    &lt;chr&gt; &quot;3&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;3&quot;,…
+## $ Ref_DASSQ4                    &lt;chr&gt; &quot;1&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;2&quot;, &quot;1&quot;, &quot;1&quot;,…
+## $ Ref_DASSQ5                    &lt;chr&gt; &quot;2&quot;, &quot;2&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;3&quot;,…
+## $ Ref_DASSQ6                    &lt;chr&gt; &quot;3&quot;, &quot;3&quot;, &quot;2&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;2&quot;,…
+## $ Ref_DASSQ7                    &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;2&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_DASSQ8                    &lt;chr&gt; &quot;3&quot;, &quot;0&quot;, &quot;1&quot;, &quot;3&quot;, &quot;3&quot;, &quot;0&quot;, &quot;3&quot;,…
+## $ Ref_DASSQ9                    &lt;chr&gt; &quot;.&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;2&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ Ref_DASSStress                &lt;chr&gt; &quot;38&quot;, &quot;28&quot;, &quot;26&quot;, &quot;20&quot;, &quot;42&quot;, &quot;2&quot;,…
+## $ Ref_DASSStressEmpty           &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_DASSTotal                 &lt;chr&gt; &quot;96.333&quot;, &quot;58&quot;, &quot;50&quot;, &quot;32&quot;, &quot;112&quot;,…
+## $ Ref_DASSTotalEmpty            &lt;chr&gt; &quot;2&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_EFullTime                 &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, …
+## $ Ref_EHomeDuties               &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ Ref_ELeavePain                &lt;chr&gt; &quot;1&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ Ref_ELimitedHours             &lt;chr&gt; &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ Ref_EPartTime                 &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;1&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ Ref_ERetired                  &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ Ref_ERetraining               &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ Ref_EStudy                    &lt;chr&gt; &quot;1&quot;, &quot;0&quot;, &quot;1&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;1&quot;, …
+## $ Ref_EUnemployedNotPain        &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ Ref_EUnemployedPain           &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;1&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ Ref_EVoluntary                &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …
+## $ Ref_GenDate                   &lt;chr&gt; &quot;1/5/17&quot;, &quot;24/5/17&quot;, &quot;6/7/17&quot;, &quot;18…
+## $ Ref_Height                    &lt;chr&gt; &quot;-2&quot;, &quot;171&quot;, &quot;163&quot;, &quot;183&quot;, &quot;179&quot;, …
+## $ Ref_HoursWorked               &lt;chr&gt; &quot;-2&quot;, &quot;-2&quot;, &quot;16&quot;, &quot;.&quot;, &quot;-2&quot;, &quot;-2&quot;,…
+## $ Ref_HSUAlliedHealth           &lt;chr&gt; &quot;1&quot;, &quot;24&quot;, &quot;3&quot;, &quot;3&quot;, &quot;4&quot;, &quot;6&quot;, &quot;3&quot;…
+## $ Ref_HSUDiagnosticTests        &lt;chr&gt; &quot;0&quot;, &quot;-2&quot;, &quot;4&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;2&quot;…
+## $ Ref_HSUED                     &lt;chr&gt; &quot;0&quot;, &quot;-2&quot;, &quot;0&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;0&quot;…
+## $ Ref_HSUGP                     &lt;chr&gt; &quot;3&quot;, &quot;1&quot;, &quot;4&quot;, &quot;0&quot;, &quot;7&quot;, &quot;3&quot;, &quot;8&quot;,…
+## $ Ref_HSUHospital               &lt;chr&gt; &quot;0&quot;, &quot;-2&quot;, &quot;0&quot;, &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;0&quot;…
+## $ Ref_HSUSpecialist             &lt;chr&gt; &quot;2&quot;, &quot;2&quot;, &quot;3&quot;, &quot;1&quot;, &quot;3&quot;, &quot;1&quot;, &quot;2&quot;,…
+## $ Ref_OpioidFreq                &lt;chr&gt; &quot;0&quot;, &quot;1&quot;, &quot;1&quot;, &quot;-4&quot;, &quot;1&quot;, &quot;0&quot;, &quot;1&quot;…
+## $ Ref_OpioidMaint               &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;-4&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;…
+## $ Ref_PainDescription           &lt;chr&gt; &quot;2&quot;, &quot;2&quot;, &quot;3&quot;, &quot;2&quot;, &quot;2&quot;, &quot;3&quot;, &quot;2&quot;,…
+## $ Ref_PCSHelplessness           &lt;chr&gt; &quot;21&quot;, &quot;12&quot;, &quot;9&quot;, &quot;4&quot;, &quot;23&quot;, &quot;7&quot;, &quot;…
+## $ Ref_PCSHelplessnessEmpty      &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_PCSMagnification          &lt;chr&gt; &quot;12&quot;, &quot;6&quot;, &quot;8&quot;, &quot;0&quot;, &quot;10&quot;, &quot;3&quot;, &quot;4…
+## $ Ref_PCSMagnificationEmpty     &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_PCSQ1                     &lt;chr&gt; &quot;4&quot;, &quot;3&quot;, &quot;3&quot;, &quot;1&quot;, &quot;4&quot;, &quot;2&quot;, &quot;4&quot;,…
+## $ Ref_PCSQ10                    &lt;chr&gt; &quot;4&quot;, &quot;2&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;1&quot;, &quot;3&quot;,…
+## $ Ref_PCSQ11                    &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;4&quot;, &quot;2&quot;, &quot;3&quot;,…
+## $ Ref_PCSQ12                    &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;4&quot;, &quot;2&quot;, &quot;2&quot;,…
+## $ Ref_PCSQ13                    &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;3&quot;, &quot;1&quot;, &quot;0&quot;,…
+## $ Ref_PCSQ2                     &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;1&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;3&quot;,…
+## $ Ref_PCSQ3                     &lt;chr&gt; &quot;4&quot;, &quot;3&quot;, &quot;1&quot;, &quot;1&quot;, &quot;4&quot;, &quot;1&quot;, &quot;3&quot;,…
+## $ Ref_PCSQ4                     &lt;chr&gt; &quot;4&quot;, &quot;3&quot;, &quot;1&quot;, &quot;1&quot;, &quot;4&quot;, &quot;1&quot;, &quot;2&quot;,…
+## $ Ref_PCSQ5                     &lt;chr&gt; &quot;4&quot;, &quot;1&quot;, &quot;2&quot;, &quot;0&quot;, &quot;4&quot;, &quot;1&quot;, &quot;3&quot;,…
+## $ Ref_PCSQ6                     &lt;chr&gt; &quot;4&quot;, &quot;3&quot;, &quot;4&quot;, &quot;0&quot;, &quot;4&quot;, &quot;2&quot;, &quot;3&quot;,…
+## $ Ref_PCSQ7                     &lt;chr&gt; &quot;4&quot;, &quot;2&quot;, &quot;1&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;1&quot;,…
+## $ Ref_PCSQ8                     &lt;chr&gt; &quot;4&quot;, &quot;0&quot;, &quot;1&quot;, &quot;1&quot;, &quot;4&quot;, &quot;2&quot;, &quot;3&quot;,…
+## $ Ref_PCSQ9                     &lt;chr&gt; &quot;4&quot;, &quot;2&quot;, &quot;1&quot;, &quot;1&quot;, &quot;3&quot;, &quot;1&quot;, &quot;3&quot;,…
+## $ Ref_PCSRumination             &lt;chr&gt; &quot;16&quot;, &quot;5&quot;, &quot;4&quot;, &quot;4&quot;, &quot;14&quot;, &quot;6&quot;, &quot;1…
+## $ Ref_PCSRuminationEmpty        &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_PCSTotal                  &lt;chr&gt; &quot;49&quot;, &quot;23&quot;, &quot;21&quot;, &quot;8&quot;, &quot;47&quot;, &quot;16&quot;,…
+## $ Ref_PCSTotalEmpty             &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_PSEQEmpty                 &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;,…
+## $ Ref_PSEQQ1                    &lt;chr&gt; &quot;0&quot;, &quot;3&quot;, &quot;3&quot;, &quot;5&quot;, &quot;0&quot;, &quot;2&quot;, &quot;3&quot;,…
+## $ Ref_PSEQQ10                   &lt;chr&gt; &quot;0&quot;, &quot;3&quot;, &quot;0&quot;, &quot;2&quot;, &quot;0&quot;, &quot;3&quot;, &quot;5&quot;,…
+## $ Ref_PSEQQ2                    &lt;chr&gt; &quot;2&quot;, &quot;2&quot;, &quot;4&quot;, &quot;4&quot;, &quot;2&quot;, &quot;2&quot;, &quot;0&quot;,…
+## $ Ref_PSEQQ3                    &lt;chr&gt; &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;2&quot;, &quot;0&quot;, &quot;4&quot;, &quot;2&quot;,…
+## $ Ref_PSEQQ4                    &lt;chr&gt; &quot;0&quot;, &quot;4&quot;, &quot;2&quot;, &quot;2&quot;, &quot;1&quot;, &quot;3&quot;, &quot;2&quot;,…
+## $ Ref_PSEQQ5                    &lt;chr&gt; &quot;3&quot;, &quot;5&quot;, &quot;3&quot;, &quot;4&quot;, &quot;0&quot;, &quot;3&quot;, &quot;3&quot;,…
+## $ Ref_PSEQQ6                    &lt;chr&gt; &quot;0&quot;, &quot;1&quot;, &quot;0&quot;, &quot;2&quot;, &quot;0&quot;, &quot;3&quot;, &quot;2&quot;,…
+## $ Ref_PSEQQ7                    &lt;chr&gt; &quot;6&quot;, &quot;1&quot;, &quot;0&quot;, &quot;2&quot;, &quot;0&quot;, &quot;3&quot;, &quot;0&quot;,…
+## $ Ref_PSEQQ8                    &lt;chr&gt; &quot;0&quot;, &quot;1&quot;, &quot;1&quot;, &quot;2&quot;, &quot;0&quot;, &quot;3&quot;, &quot;2&quot;,…
+## $ Ref_PSEQQ9                    &lt;chr&gt; &quot;0&quot;, &quot;4&quot;, &quot;1&quot;, &quot;3&quot;, &quot;0&quot;, &quot;2&quot;, &quot;3&quot;,…
+## $ Ref_PSEQTotal                 &lt;chr&gt; &quot;12&quot;, &quot;27&quot;, &quot;14&quot;, &quot;28&quot;, &quot;3&quot;, &quot;28&quot;,…
+## $ Ref_SentStatus                &lt;chr&gt; &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;,…
+## $ Ref_SurveyCategoryID          &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;,…
+## $ Ref_SurveyKey                 &lt;chr&gt; &quot;EPW1810&quot;, &quot;EPW1845&quot;, &quot;EPW1941&quot;, &quot;…
+## $ Ref_SurveyScheduleID          &lt;chr&gt; &quot;810&quot;, &quot;845&quot;, &quot;941&quot;, &quot;1882&quot;, &quot;977&quot;…
+## $ Ref_Weight                    &lt;chr&gt; &quot;60&quot;, &quot;73&quot;, &quot;189&quot;, &quot;98&quot;, &quot;76&quot;, &quot;10…
+## $ Ref_WorkHoursAffected         &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, NA, &quot;1&quot;, &quot;0&quot;, &quot;1&quot;, …
+## $ Ref_WorkTypeAffected          &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, NA, &quot;1&quot;, &quot;0&quot;, &quot;1&quot;, …
+## $ ReferralDate                  &lt;chr&gt; &quot;3/4/17&quot;, &quot;22/2/17&quot;, &quot;6/6/17&quot;, &quot;23…
+## $ ReferralSource                &lt;chr&gt; &quot;11&quot;, &quot;10&quot;, &quot;10&quot;, &quot;10&quot;, &quot;10&quot;, &quot;10&quot;…
+## $ ReferralSourceOther           &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA…
+## $ Sex                           &lt;chr&gt; &quot;1&quot;, &quot;2&quot;, &quot;2&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;,…
+## $ State                         &lt;chr&gt; &quot;2&quot;, &quot;2&quot;, &quot;2&quot;, &quot;2&quot;, &quot;2&quot;, &quot;2&quot;, &quot;2&quot;,…
+## $ TorresStraitIsl               &lt;chr&gt; &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, NA, &quot;0&quot;, &quot;0&quot;, &quot;0&quot;, …</code></pre>
+<body class="blue">
+</body>
