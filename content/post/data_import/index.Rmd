@@ -1,5 +1,5 @@
 ---
-title: "Supercharged Data Cleaning with R"
+title: "Supercharged Data Cleaning with R (Part One - Data Import)"
 author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
 date: '2019-11-23'
 categories:
@@ -8,13 +8,11 @@ tags:
   - Data Cleaning
 output:
   blogdown::html_page:
-    toc: yes
+    toc: no
 ---
 <style>
 body.blue { background-color:#2b3f60;}
 </style>
-
-# Supercharged Data Cleaning with R — Part One
 
 ## Importing the Data
 
@@ -43,9 +41,9 @@ library(forcats)
 
 ```
 
-The **fs** package is fantastic for anything that relates to file/folder navigation using R. By using **here()** not specifying an absolute file path (e.g. `tim_data\analysis\import`), other people who have the data can run my script straight away.
+`fs` is fantastic for anything that relates to file/folder navigation using R. By using the `here()` function, and not an absolute file path, I ensure people who have the data can run my script easily
 
-I next list all files in my working directory to locate the spreadsheets I need.
+I next list all files in my working directory to locate the spreadsheets containing the data.
 
 ```{r}
 
@@ -53,7 +51,7 @@ fs::dir_ls(path = here())
 
 ```
 
-Because I only want csv files, I use a basic regular expression to import only files that end in this extension. Then, I then read in each spreadsheet programatically, and the contents in a list of dataframes. 
+I use a basic regular expression to import files that have a `.csv` extension. The contents of each spreadsheet are stored in a list of dataframes
 
 ```{r}
 csv_files<- fs::dir_ls(here(), regexp = "\\.csv$")
@@ -63,15 +61,15 @@ pain_data_raw<- csv_files %>% purrr::map( ~readr::read_csv(.x)) %>%
 
 ```
 
-Check there is now a list of dataframes:
+Check there is now a list of 3 dataframes:
 
 ```{r}
 
-str(pain_data_raw, max.level = 1)
+str(pain_data_raw, max.level = 0)
 
 ```
 
-The **readr** package automatically guesses the data type of each imported column. But it doesn't always guess right, which can create problems when you have large datasets. In theory, each of the three dataframes should have identical variables. But let's check this, using a handy function from the **janitor** package. This function lists variables in the far left column and shows whether that variable is present (and what data type it is) in each dataframe, the names of which are listed up top.
+`readr` automatically guesses the data type of each imported column. But it doesn't always guess right, which can create problems if you have large datasets. In theory, each of the three dataframes should have identical variables. But let's check this this is true, using `compare_df_cols()` from the `janitor` package. This function lets you compare multiple dataframes in terms of variables (presence/absence and data type).
 
 ```{r}
 
@@ -81,9 +79,9 @@ data_comparison %>% dplyr::filter(column_name == 'EEnd_BPIPainInterference')
 
 ```
 
-As you can see, the **EEnd_BPIPainInterference** column is specified as a numeric variable in two of the dataframes, but as a character varible in the other. To be clear, this variable (which measures how severely pain disrupts daily activities) should certainly be numeric. The character specification in one of the dataframes is probably caused by an errant fullstop or some other data entry error.
+Strangely, the `EEnd_BPIPainInterference` column is specified as a numeric variable for the first and third the dataframes, but as a character varible in the second dataframe. It should definitely be numeric, and the character specification is most likely due to an error in data entry for that spreadsheet (e.g. an errant fullstop left in the column somewhere).
 
-When you have lots of columns (> 100) and there are likely mistakes in data entry, it is often best to manually import all columns as character variables, and then alter their type as needed. I can do this by adding **col_types = cols(.default = "c")** to the original code.
+When you have many columns (> 100) and data entry mistakes are likely, it is often best to manually import all columns as character variables, and then alter their type later. This can be done by adding `col_types = cols(.default = "c")` to the original code.
 
 ```{r}
 pain_data_raw<- csv_files %>% purrr::map( ~readr::read_csv(.x, col_types = cols(.default = "c"))) %>% 
@@ -95,7 +93,7 @@ If I now compare each dataframe again, all variables are of the character type. 
 
 ```{r}
 
-data_comparison
+head(data_comparison)
 
 ```
 
@@ -111,7 +109,7 @@ head(matching_vars)
 ```
 
 
-I then use **map()** once again, to iterate through each dataframe and select only these variables
+I theniterate through each dataframe and select only these variables.
 
 ```{r}
 
@@ -119,7 +117,7 @@ pain_data_complete<- pain_data_raw %>% purrr::map(~dplyr::select(.x, matching_va
 
 ```
 
-To be sure it worked, I can check that each dataframe now has the same number of columns. 
+To be sure it worked, I check that each dataframe now has the same number of columns. 
 
 ```{r}
 purrr::map_dbl(pain_data_complete, ncol)
@@ -151,13 +149,13 @@ joined_data<- dplyr::bind_rows(pain_data_complete)
 
 ```
 
-Test that it works
+Test the function:
 
 ```{r}
 
 joined_data<- import_data()
 
-head(glimpse(joined_data))
+str(joined_data, max.level = 0)
 
 ```
 
