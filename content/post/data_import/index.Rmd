@@ -22,7 +22,7 @@ I begin by loading all required packages.
 
 ```{r, echo = FALSE}
 
-knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE, out.width = '100%')
 
 ```
 
@@ -41,7 +41,7 @@ library(forcats)
 
 ```
 
-`fs` is fantastic for anything that relates to file/folder navigation using R. By using the `here()` function, and not an absolute file path, I ensure people who have the data can run my script easily
+`fs` is fantastic for anything that relates to file/folder navigation using R. By using the `here()` function, and not an absolute file path, I ensure people who have the data can run my script easily.
 
 I next list all files in my working directory to locate the spreadsheets containing the data.
 
@@ -69,7 +69,7 @@ str(pain_data_raw, max.level = 0)
 
 ```
 
-`readr` automatically guesses the data type of each imported column. But it doesn't always guess right, which can create problems if you have large datasets. In theory, each of the three dataframes should have identical variables. But let's check this this is true, using `compare_df_cols()` from the `janitor` package. This function lets you compare multiple dataframes in terms of variables (presence/absence and data type).
+`readr` automatically guesses the data type of each imported column. But it doesn't always guess right, which can create problems if you have large datasets. In theory, each of the three dataframes should have identical variables. But let's check that this is true, using `compare_df_cols()` from the `janitor` package. This function lets you compare multiple dataframes according to the presence and data type of the variables they contain. 
 
 ```{r}
 
@@ -79,7 +79,7 @@ data_comparison %>% dplyr::filter(column_name == 'EEnd_BPIPainInterference')
 
 ```
 
-Strangely, the `EEnd_BPIPainInterference` column is specified as a numeric variable for the first and third the dataframes, but as a character varible in the second dataframe. It should definitely be numeric, and the character specification is most likely due to an error in data entry for that spreadsheet (e.g. an errant fullstop left in the column somewhere).
+Curiously, the `EEnd_BPIPainInterference` column is specified as a numeric variable for the first and third the dataframes, but as a character varible in the second dataframe. This should definitely be numeric, since it measure the how severely pain disrupts daily activities. The character specification is most likely due to an error in data entry for that spreadsheet (e.g. an errant fullstop left in the column somewhere).
 
 When you have many columns (> 100) and data entry mistakes are likely, it is often best to manually import all columns as character variables, and then alter their type later. This can be done by adding `col_types = cols(.default = "c")` to the original code.
 

@@ -31,7 +31,7 @@ library(naniar)
 library(plotly)
 library(stringr)
 library(forcats)</code></pre>
-<p><code>fs</code> is fantastic for anything that relates to file/folder navigation using R. By using the <code>here()</code> function, and not an absolute file path, I ensure people who have the data can run my script easily</p>
+<p><code>fs</code> is fantastic for anything that relates to file/folder navigation using R. By using the <code>here()</code> function, and not an absolute file path, I ensure people who have the data can run my script easily.</p>
 <p>I next list all files in my working directory to locate the spreadsheets containing the data.</p>
 <pre class="r"><code>fs::dir_ls(path = here())</code></pre>
 <pre><code>## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/Rplot.png
@@ -53,13 +53,13 @@ pain_data_raw&lt;- csv_files %&gt;% purrr::map( ~readr::read_csv(.x)) %&gt;%
 <p>Check there is now a list of 3 dataframes:</p>
 <pre class="r"><code>str(pain_data_raw, max.level = 0)</code></pre>
 <pre><code>## List of 3</code></pre>
-<p><code>readr</code> automatically guesses the data type of each imported column. But it doesn’t always guess right, which can create problems if you have large datasets. In theory, each of the three dataframes should have identical variables. But let’s check this this is true, using <code>compare_df_cols()</code> from the <code>janitor</code> package. This function lets you compare multiple dataframes in terms of variables (presence/absence and data type).</p>
+<p><code>readr</code> automatically guesses the data type of each imported column. But it doesn’t always guess right, which can create problems if you have large datasets. In theory, each of the three dataframes should have identical variables. But let’s check that this is true, using <code>compare_df_cols()</code> from the <code>janitor</code> package. This function lets you compare multiple dataframes according to the presence and data type of the variables they contain.</p>
 <pre class="r"><code>data_comparison&lt;- janitor::compare_df_cols(pain_data_raw)
 
 data_comparison %&gt;% dplyr::filter(column_name == &#39;EEnd_BPIPainInterference&#39;)</code></pre>
 <pre><code>##                column_name early_19    mid_17  mid_18
 ## 1 EEnd_BPIPainInterference  numeric character numeric</code></pre>
-<p>Strangely, the <code>EEnd_BPIPainInterference</code> column is specified as a numeric variable for the first and third the dataframes, but as a character varible in the second dataframe. It should definitely be numeric, and the character specification is most likely due to an error in data entry for that spreadsheet (e.g. an errant fullstop left in the column somewhere).</p>
+<p>Curiously, the <code>EEnd_BPIPainInterference</code> column is specified as a numeric variable for the first and third the dataframes, but as a character varible in the second dataframe. This should definitely be numeric, since it measure the how severely pain disrupts daily activities. The character specification is most likely due to an error in data entry for that spreadsheet (e.g. an errant fullstop left in the column somewhere).</p>
 <p>When you have many columns (&gt; 100) and data entry mistakes are likely, it is often best to manually import all columns as character variables, and then alter their type later. This can be done by adding <code>col_types = cols(.default = &quot;c&quot;)</code> to the original code.</p>
 <pre class="r"><code>pain_data_raw&lt;- csv_files %&gt;% purrr::map( ~readr::read_csv(.x, col_types = cols(.default = &quot;c&quot;))) %&gt;% 
   purrr::set_names(&quot;early_19&quot;, &quot;mid_17&quot;, &quot;mid_18&quot;)</code></pre>
