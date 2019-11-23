@@ -14,13 +14,19 @@ output:
 body.blue { background-color:#2b3f60;}
 </style>
 
-#Supercharged Data Cleaning with R — Part One
+# Supercharged Data Cleaning with R — Part One
 
-##Importing the Data
+## Importing the Data
 
-Real-world data is messy, irritating and cumbersome. Many tutorials on data wrangling with R simply don't prepare you for it. The following article will be the first in a series of expositions analysing unmanicured datasets using best practices. As I am a Clinical Psychologist by training, the content will be skewed towards mental health and psychology-related datasets.
+Real-world data is messy, irritating and cumbersome. Many tutorials on data wrangling with R simply don't prepare you for it. 
 
 I begin by loading all required packages.
+
+```{r, echo = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE)
+
+```
 
 ```{r}
 library(fs)
@@ -37,37 +43,47 @@ library(forcats)
 
 ```
 
-The `fs` package is fantastic for anything that relates to file/folder navigation using `R`. The function `here()` always finds the folder where the `.Rproj` file is contained, and treates this folder as the working directory. Because I am not specifying an absolute file path (e.g. `tim_data\analysis\import`), other people who have the data can run my script immediately.
+The **fs** package is fantastic for anything that relates to file/folder navigation using R. By using **here()** not specifying an absolute file path (e.g. `tim_data\analysis\import`), other people who have the data can run my script straight away.
 
-Next I list all files in the working directory to locate the spreadsheets in which my data is contained.
+I next list all files in my working directory to locate the spreadsheets I need.
 
 ```{r}
+
 fs::dir_ls(path = here())
 
 ```
 
-
-Because I only want csv files, I use a basic regular expression to import only files that end in `.csv`. Then, I use the `map()` to programatically read in and store each dataframe (i.e. from each spreadsheet) into a list of dataframes. I will later bind them into a single dataframe.
+Because I only want csv files, I use a basic regular expression to import only files that end in this extension. Then, I then read in each spreadsheet programatically, and the contents in a list of dataframes. 
 
 ```{r}
 csv_files<- fs::dir_ls(here(), regexp = "\\.csv$")
 
 pain_data_raw<- csv_files %>% purrr::map( ~readr::read_csv(.x)) %>% 
   purrr::set_names("early_19", "mid_17", "mid_18")
+
 ```
 
-The `readr` automatically guesses the data type of each imported column. But it doesn't always guess right, and this can create problems with large datasets. In theory, each of the three dataframes should have identical variables. But let's check this, using a handy function from the `janitor` package.
+Check there is now a list of dataframes:
 
 ```{r}
+
+str(pain_data_raw, max.level = 1)
+
+```
+
+The **readr** package automatically guesses the data type of each imported column. But it doesn't always guess right, which can create problems when you have large datasets. In theory, each of the three dataframes should have identical variables. But let's check this, using a handy function from the **janitor** package. This function lists variables in the far left column and shows whether that variable is present (and what data type it is) in each dataframe, the names of which are listed up top.
+
+```{r}
+
 data_comparison<- janitor::compare_df_cols(pain_data_raw)
 
 data_comparison %>% dplyr::filter(column_name == 'EEnd_BPIPainInterference')
 
 ```
 
-As you can see, the `EEnd_BPIPainInterference` column is specified as a numeric variable in two of the dataframes, but as a character varible in the other. To be clear, this variable (which measures how much pain disrupts daily activities) should certainly be numeric. The character specification in one of the dataframes is probably caused by an errant fullstop or other character in the column (a data entry error).
+As you can see, the **EEnd_BPIPainInterference** column is specified as a numeric variable in two of the dataframes, but as a character varible in the other. To be clear, this variable (which measures how severely pain disrupts daily activities) should certainly be numeric. The character specification in one of the dataframes is probably caused by an errant fullstop or some other data entry error.
 
-Therefore, when you have lots of columns (> 100) and likely data entry mistakes, it is often best to manually import all columns as character variables, and then alter their type as needed. I I can do this by adding `col_types = cols(.default = "c")` to the original code.
+When you have lots of columns (> 100) and there are likely mistakes in data entry, it is often best to manually import all columns as character variables, and then alter their type as needed. I can do this by adding **col_types = cols(.default = "c")** to the original code.
 
 ```{r}
 pain_data_raw<- csv_files %>% purrr::map( ~readr::read_csv(.x, col_types = cols(.default = "c"))) %>% 
@@ -75,24 +91,27 @@ pain_data_raw<- csv_files %>% purrr::map( ~readr::read_csv(.x, col_types = cols(
 
 ```
 
-If I now compare each dataframe again, all variables are of type character. But there is another problem. Certain variables appear in one dataframe but not the others, or appear in two dataframes but not the third. This is indicated by `NA` values in the output.
+If I now compare each dataframe again, all variables are of the character type. But there is another problem. Certain variables appear in one dataframe but not others, or appear in two dataframes but not in the third. 
 
 ```{r}
+
 data_comparison
 
 ```
 
-Since I want to analyse all the data, I can simply opt to **only** retain variables that are common to each dataframe. The first step here will be to store the names of those common variables in a character vector.
+Since I want to analyse all dataframes combined, I opt to **only** retain variables that are common to each dataframe. To do this, I first store the names of those common variables in a character vector.
 
 ```{r}
 matching_vars<- data_comparison %>% dplyr::filter_at(vars(-column_name), all_vars(!is.na(.))) %>% 
   dplyr::select(column_name) %>% dplyr::pull(1)
 
-matching_vars
+#Have a look
+
+head(matching_vars)
 ```
 
 
-I then use `map()` once again, to iterate through each dataframe and select only these variables
+I then use **map()** once again, to iterate through each dataframe and select only these variables
 
 ```{r}
 
@@ -138,7 +157,7 @@ Test that it works
 
 joined_data<- import_data()
 
-glimpse(joined_data)
+head(glimpse(joined_data))
 
 ```
 
