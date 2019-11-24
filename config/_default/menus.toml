@@ -8,20 +8,20 @@
  # url = "#demos"
  # weight = 10
 
-[[main]]
-  name = "Posts"
-  url = "#posts"
-  weight = 3
+#[[main]]
+ # name = "Posts"
+  #url = "#posts"
+  #weight = 3
 
 [[main]]
-  name = "Data Science"
+  name = "Research & Consulting"
   url = "#hero"
-  weight = 1
+  weight = 2
 
 [[main]]
   name = "Psychology"
   url = "psychology_landing/"
-  weight = 2
+  weight = 1
 
 #[[main]]
  # name = "Projects"
