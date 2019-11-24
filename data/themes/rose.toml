@@ -5,7 +5,7 @@ name = "Rose"
 light = true
 
 # Primary
-primary = "#DAAD86"
+primary = "#F79D84"
 # Menu
 menu_primary = "#FFF"
 menu_text = "#659DBD"
