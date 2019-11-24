@@ -13,9 +13,23 @@ li
 
 i.fa-li.fas.fa-graduation-cap
 {
-
-  color: #DAAD86;
-
+  color: #F79D84;;
 }
 
+
+
+.portrait-title h2 {color: #F79D84;}
+.portrait-title h3 {color: #F79D84;}
+
+#profile .network-icon {color: #F79D84;}
+
 .article-container {max-width: 100%;}
+
+.navbar-light .navbar-brand {color: #8d8741;}
+
+.navbar-light .navbar-nav>.nav-item>.nav-link, .navbar-light .navbar-nav>.nav-item>.nav-link:focus, .navbar-light .navbar-nav>.nav-item>.nav-link:hover {color: #8d8741;}
+
+ul.ul-edu li .description p.institution {color: #F79D84;}
+
+a, h3.article-title a:hover {color: #F79D84;}
+

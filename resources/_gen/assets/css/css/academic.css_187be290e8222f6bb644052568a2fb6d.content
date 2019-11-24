@@ -1,2 +1,2 @@
 /* Source Themes Academic v4.4.0 | https://sourcethemes.com/academic/ */
-h1,h2,h3,h4,h5,h6,p,li{color:#fff}i.fa-li.fas.fa-graduation-cap{color:#daad86}.article-container{max-width:100%}
+h1,h2,h3,h4,h5,h6,p,li{color:#fff}i.fa-li.fas.fa-graduation-cap{color:#f79d84}.portrait-title h2{color:#f79d84}.portrait-title h3{color:#f79d84}#profile .network-icon{color:#f79d84}.article-container{max-width:100%}.navbar-light .navbar-brand{color:#8d8741}.navbar-light .navbar-nav>.nav-item>.nav-link,.navbar-light .navbar-nav>.nav-item>.nav-link:focus,.navbar-light .navbar-nav>.nav-item>.nav-link:hover{color:#8d8741}ul.ul-edu li .description p.institution{color:#f79d84}a,h3.article-title a:hover{color:#f79d84}
