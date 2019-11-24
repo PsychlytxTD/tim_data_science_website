@@ -235,9 +235,10 @@ joined_data&lt;- joined_data %&gt;% select(!!-any_vars(item_vars))
 #Drop variables that have only one value 
 joined_data&lt;- joined_data %&gt;% purrr::keep(~length(unique(.x)) &gt;= 2)
 
-#Drop variables with over 50% or responses missing
+#Drop variables with over 50% of responses missing
 joined_data&lt;- joined_data %&gt;% discard(~mean(is.na(.x)) &gt;= .5) 
 
+#Drop miscellaneous variables that I know I don&#39;t kneed
 
 joined_data&lt;- joined_data %&gt;% dplyr::select(-state, -episode_id, -torres_strait_isl, -ref_comp_status, -end_height, -end_weight,-contains(&quot;interpreter&quot;), -contains(&quot;hours_worked&quot;), -contains(&quot;survey_category_id&quot;), 
                                       -contains(&quot;survey_schedule_id&quot;), -contains(&quot;key&quot;),

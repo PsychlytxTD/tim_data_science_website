@@ -365,9 +365,10 @@ joined_data<- joined_data %>% select(!!-any_vars(item_vars))
 #Drop variables that have only one value 
 joined_data<- joined_data %>% purrr::keep(~length(unique(.x)) >= 2)
 
-#Drop variables with over 50% or responses missing
+#Drop variables with over 50% of responses missing
 joined_data<- joined_data %>% discard(~mean(is.na(.x)) >= .5) 
 
+#Drop miscellaneous variables that I know I don't kneed
 
 joined_data<- joined_data %>% dplyr::select(-state, -episode_id, -torres_strait_isl, -ref_comp_status, -end_height, -end_weight,-contains("interpreter"), -contains("hours_worked"), -contains("survey_category_id"), 
                                       -contains("survey_schedule_id"), -contains("key"),

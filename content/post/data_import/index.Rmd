@@ -43,7 +43,7 @@ library(forcats)
 
 By using the `here()` function from the `fs` package (as opposed to an absolute file path), I ensure that people who have my data can run this script easily.
 
-I next want to see which files are showing up in my working directory. I want import spreadsheets with a `.csv` extension and leave the original versions, which hav a `.xlsx` extension.
+I next want to see which files are showing up in my working directory. I want to import spreadsheets with a `.csv` extension and leave the original versions, which hav an `.xlsx` extension.
 
 ```{r}
 
@@ -81,9 +81,9 @@ data_comparison %>% dplyr::filter(column_name == 'EEnd_BPIPainInterference')
 
 ```
 
-For example, the `EEnd_BPIPainInterference` column (which measures pain interference in daily activities) is specified as a numeric variable for the first and third the dataframes, but as a character varible in the second dataframe. This is most likely due to an error when data was entered into one of the spreadsheets.
+For example, the `EEnd_BPIPainInterference` column (which measures pain interference in daily activities) is specified as a numeric variable for the first and third dataframes, but as a character varible in the second dataframe. This is most likely due to an error when data was entered into one of the spreadsheets.
 
-When you have many columns (i.e. more than 100) and data entry mistakes are probably, it is sometimes best to manually import all columns as character variables, and then alter their type later. This can be done by adding `col_types = cols(.default = "c")` to the original code.
+When you have many columns (i.e. more than 100) and data entry mistakes are probable, it is sometimes best to manually import all columns as character variables, and then alter their type later. This can be done by adding `col_types = cols(.default = "c")` to the original code.
 
 ```{r}
 pain_data_raw<- csv_files %>% purrr::map( ~readr::read_csv(.x, col_types = cols(.default = "c"))) %>% 
@@ -91,7 +91,7 @@ pain_data_raw<- csv_files %>% purrr::map( ~readr::read_csv(.x, col_types = cols(
 
 ```
 
-If I now compare each dataframe again, all variables are of the character type. But there is another problem. Certain variables appear in one dataframe but not others, or appear in two dataframes but not in the third. 
+If I now compare each dataframe again, all variables are of the character type. But there is another problem. Certain variables appear in one dataframe and not the others, or appear in two dataframes but not in the third. 
 
 ```{r}
 

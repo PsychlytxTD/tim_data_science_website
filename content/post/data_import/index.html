@@ -32,7 +32,7 @@ library(plotly)
 library(stringr)
 library(forcats)</code></pre>
 <p>By using the <code>here()</code> function from the <code>fs</code> package (as opposed to an absolute file path), I ensure that people who have my data can run this script easily.</p>
-<p>I next want to see which files are showing up in my working directory. I want import spreadsheets with a <code>.csv</code> extension and leave the original versions, which hav a <code>.xlsx</code> extension.</p>
+<p>I next want to see which files are showing up in my working directory. I want to import spreadsheets with a <code>.csv</code> extension and leave the original versions, which hav an <code>.xlsx</code> extension.</p>
 <pre class="r"><code>fs::dir_ls(path = here())</code></pre>
 <pre><code>## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/Rplot.png
 ## /Users/timothyjamesdeitz/Documents/tim_website/tim_website/website_files/content/post/data_import/data_import
@@ -60,11 +60,11 @@ pain_data_raw&lt;- csv_files %&gt;% purrr::map( ~readr::read_csv(.x)) %&gt;%
 data_comparison %&gt;% dplyr::filter(column_name == &#39;EEnd_BPIPainInterference&#39;)</code></pre>
 <pre><code>##                column_name early_19    mid_17  mid_18
 ## 1 EEnd_BPIPainInterference  numeric character numeric</code></pre>
-<p>For example, the <code>EEnd_BPIPainInterference</code> column (which measures pain interference in daily activities) is specified as a numeric variable for the first and third the dataframes, but as a character varible in the second dataframe. This is most likely due to an error when data was entered into one of the spreadsheets.</p>
-<p>When you have many columns (i.e. more than 100) and data entry mistakes are probably, it is sometimes best to manually import all columns as character variables, and then alter their type later. This can be done by adding <code>col_types = cols(.default = &quot;c&quot;)</code> to the original code.</p>
+<p>For example, the <code>EEnd_BPIPainInterference</code> column (which measures pain interference in daily activities) is specified as a numeric variable for the first and third dataframes, but as a character varible in the second dataframe. This is most likely due to an error when data was entered into one of the spreadsheets.</p>
+<p>When you have many columns (i.e. more than 100) and data entry mistakes are probable, it is sometimes best to manually import all columns as character variables, and then alter their type later. This can be done by adding <code>col_types = cols(.default = &quot;c&quot;)</code> to the original code.</p>
 <pre class="r"><code>pain_data_raw&lt;- csv_files %&gt;% purrr::map( ~readr::read_csv(.x, col_types = cols(.default = &quot;c&quot;))) %&gt;% 
   purrr::set_names(&quot;early_19&quot;, &quot;mid_17&quot;, &quot;mid_18&quot;)</code></pre>
-<p>If I now compare each dataframe again, all variables are of the character type. But there is another problem. Certain variables appear in one dataframe but not others, or appear in two dataframes but not in the third.</p>
+<p>If I now compare each dataframe again, all variables are of the character type. But there is another problem. Certain variables appear in one dataframe and not others, or appear in two dataframes but not in the third.</p>
 <pre class="r"><code>head(data_comparison)</code></pre>
 <pre><code>##         column_name early_19  mid_17    mid_18
 ## 1        Aboriginal  numeric numeric   numeric
