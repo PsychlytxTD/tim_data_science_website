@@ -54,7 +54,7 @@ ref_pcs_rumination, ref_bpi_sleep, ref_bpi_average, ref_weight, ref_dass_depress
 ref_dass_anxiety, ref_dass_stress)
 ```
 
-Next, I use some tidy evaluation and functional programing principles write functions that dynamically iterate through these variables and create exploratory plots.
+Next, I use some tidy evaluation and functional programing principles to write functions that dynamically iterate through these variables and create exploratory plots.
 
 I begin with boxpots 
 
