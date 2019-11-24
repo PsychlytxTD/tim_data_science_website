@@ -1,7 +1,7 @@
 ---
-title: "Dynamic Exploratory Visualisation With R"
+title: "Programmatically Plot Interactive Distributions With R"
 author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
-date: '2019-11-23'
+date: '2019-11-24'
 categories:
   - Visualisation
 tags:
@@ -46,7 +46,7 @@ clean_data<- readRDS("clean_data.rds")
 
 ```
 
-I select variables of interest to focus on in analyses.
+I select variables of interest for exploratory analyses.
 
 ```{r}
 vars_of_interest<-  dplyr::select(clean_data, patient_id, sex, ref_hsugp, ref_hsu_allied_health, ref_hsu_specialist, ref_hsu_hospital, ref_hsued, ref_unemployed_pain, ref_daily_morphine, ref_bpi_work, ref_hsu_diagnostic_tests, ref_opioid_freq, ref_full_time, ref_bpi_relations, ref_pcs_total, ref_pseq_total, ref_pcs_helplessness, ref_pcs_magnification,

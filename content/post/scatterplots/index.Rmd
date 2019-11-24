@@ -1,0 +1,250 @@
+---
+title: "Create Interactive Scatterplots Programmatically With R"
+author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
+date: '2019-11-24'
+categories:
+  - Visualisation
+tags:
+  - Visualisation
+output:
+  blogdown::html_page:
+    toc: no
+---
+<style>
+body.blue { background-color:#659dbd;}
+</style>
+
+
+
+```{r, echo = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE, out.width = '100%')
+
+```
+
+```{r}
+library(fs)
+library(readr)
+library(here)
+library(purrr)
+library(janitor)
+library(dplyr)
+library(stringr)
+library(naniar)
+library(plotly)
+library(stringr)
+library(forcats)
+
+```
+
+In this article, I programatically generate interactive scatterplots using the persistent pain dataset that I imported and cleaned in earlier posts. 
+
+```{r}
+library(fs)
+library(readr)
+library(here)
+library(purrr)
+library(janitor)
+library(dplyr)
+library(stringr)
+library(naniar)
+library(plotly)
+library(stringr)
+library(forcats)
+
+```
+
+```{r}
+clean_data<- readRDS("clean_data.rds")
+
+```
+
+I select variables of interest for exploratory analyses.
+
+```{r}
+vars_of_interest<-  dplyr::select(clean_data, patient_id, sex, ref_hsugp, ref_hsu_allied_health, ref_hsu_specialist, ref_hsu_hospital, ref_hsued, ref_unemployed_pain, ref_daily_morphine, ref_bpi_work, ref_hsu_diagnostic_tests, ref_opioid_freq, ref_full_time, ref_bpi_relations, ref_pcs_total, ref_pseq_total, ref_pcs_helplessness, ref_pcs_magnification,
+ref_pcs_rumination, ref_bpi_sleep, ref_bpi_average, ref_weight, ref_dass_depression,
+ref_dass_anxiety, ref_dass_stress)
+```
+
+The `ggpairs()` function from **GGally** creates a matrix of scatterplots, based on the columns that are passed to it. But the function is not very helpful if you have a large number of numeric variables and your computer will probably crash in the process.
+
+With large datasets, I think it can be helpful to create a named list of scatterplots, the elements of which can be scrolled through (using the R Studio viewer for example) or selected based on the name of the variable in question. 
+
+Here is the code required to generate such a function. Explanatory comments are embedded.
+
+```{r}
+
+show_all_scatterplots<- function(df, point_size = 10) {
+  
+  #Select only numeric variables for plotting
+  
+  df<- dplyr::select_if(df, is.numeric)
+  
+  #Create a two-column dataframe with all possible pairs of numeric variable names
+  
+  numeric_pairs<- tibble::tibble(x_variable = names(df), 
+                                 y_variable = x_variable) %>% expand.grid() 
+  
+  #Iterate over the two columns of names and use them 
+  #to select variables from the data
+  
+  plot_list<- purrr::map2(numeric_pairs$x_variable, numeric_pairs$y_variable, ~ { 
+    
+    #Create linear models for each pair of variables — required for fitting a line 
+    #to each plot
+    
+    model<- lm(df[[.y]] ~ df[[.x]], data = df)
+    
+    #Create a plotting dataframe with complete cases, to avoid an error caused by unequal column lenghts.
+    
+    plotting_df<- tibble::tibble(x_plot_var = df[[.x]], y_plot_var = df[[.y]]) %>% dplyr::filter(complete.cases(.)) 
+    
+    plot_ly(plotting_df, x = ~x_plot_var, y = ~y_plot_var) %>%
+      add_markers(opacity = 0.5, size = point_size, showlegend = FALSE) %>%
+      
+      #Add the line of best fit to each plot
+      #Add a tooltip dhowing the correlation
+      
+      add_lines(y = ~fitted(model))  %>% 
+      layout(title = paste0(.x, " vs ", .y,":", " 
+                            Correlation = ", round(cor(df[[.x]],
+                                                       df[[.y]], use = "complete.obs"), 2)),
+                                            xaxis = list(title = paste(.x)),
+                                            yaxis = list(title = paste(.y)))
+  })
+  
+  #Create a naming convention so that plots from the list can be accessed easily.
+  #The convention is variable_one_nameANDvariable_two_name
+  
+  plot_names<- numeric_pairs %>% tidyr::unite("plot_labels", x_variable:y_variable, sep = "AND", remove = TRUE) %>% dplyr::pull(plot_labels)
+  
+  plot_list<- plot_list %>% purrr::set_names(plot_names)
+  
+}
+
+
+```
+
+Check the function works by selecting a scatterplot of average pain intensity vs. sleep disturbance (caused by pain)
+
+```{r}
+
+scatter_by_var<- show_all_scatterplots(vars_of_interest)
+
+scatter_by_var[["ref_bpi_sleepANDref_bpi_average"]]
+
+```
+
+Sometimes, we also want to look at subgroups within scatterplots. Doing so is important to avoid Simpson's Paradox!
+
+The code for dynamically creating grouped scatterplots is shown below:
+
+```{r}
+how_all_scatterplots_grouped<- function(df, point_identifier, point_size = NULL, 
+                                         grouping_variable) {
+  
+  group<- enquo(grouping_variable)
+  
+  label<- enquo(point_identifier)
+  
+  numeric_pairs<- tibble::tibble(x_variable = names(dplyr::select_if(df, 
+                                                                     is.numeric)),
+                                 y_variable = x_variable) %>% expand.grid()
+
+  
+  
+  plot_list<- purrr::map2(numeric_pairs$x_variable, numeric_pairs$y_variable, ~ {
+    
+    #Store the name of the x-axis & y-axis variables 
+    #(we won't be able to acces .x or .y once we start a new map() statement)
+    
+    x_var<- .x   
+    
+    y_var<- .y
+    
+    #Make a list of dataframes, based on levels of grouping variable 
+    #selected by the user
+    
+    splitting_group<- dplyr::select(df, !!group) %>% pull(1)
+    
+    split_df<- split(df, splitting_group)
+    
+    #For each dataframe in the list, add a group-specific correlation value 
+    #and group size
+    
+    merged_df<- purrr::map(split_df, 
+                           ~dplyr::mutate(., 
+                                          correlation = round(cor(.x[[paste(x_var)]], .x[[paste(y_var)]], 
+                                                                  use = "pairwise.complete.obs"), 2),
+                                          N = nrow(.x)
+                           ))
+    
+    #Merge the list of dataframes back into a single dataframe
+    
+    merged_df<- do.call(rbind, merged_df)
+    
+    lm_grouping_var<- dplyr::select(merged_df, !!group) %>% pull()
+    
+    #Create a linear model to be able to plot the line of best fit
+    #We specify grouped linear models using 
+    #multiplication notation: y ~ x * categorical_variable
+    
+    model<- lm(merged_df[[paste(.y)]] ~ merged_df[[paste(.x)]]*as.factor(lm_grouping_var), 
+               data = merged_df)
+    
+    #Make the plotly base and customise the hover info
+    
+    plotly_identifier_var<- dplyr::select(merged_df, !!label) %>% pull()
+    
+    plotting_df<- tibble::tibble(plotly_x_var = merged_df[[paste(.x)]], plotly_y_var = merged_df[[paste(.y)]], correlation = merged_df[["correlation"]], N = merged_df[["N"]],
+                   plotly_grouping_var = lm_grouping_var, plotly_identifier_var = plotly_identifier_var) %>% dplyr::filter(complete.cases(plotly_x_var, plotly_y_var, plotly_identifier_var, plotly_grouping_var)) 
+    
+    plot_ly(plotting_df, x = ~plotly_x_var, y = ~plotly_y_var, 
+            color = ~as.factor(plotly_grouping_var),
+            hoverinfo = "text", 
+            text = ~paste("Identifier:", plotly_identifier_var, "<br>",
+                          .x, ": ", plotly_x_var, "<br>",
+                          .y, ": ", plotly_y_var, "<br>",
+                          "Group Correlation:", correlation, "<br>",
+                          "Group N:", N
+                          
+            )) %>%
+      
+      add_markers(opacity = 0.5, size = point_size, showlegend = TRUE) %>%
+      
+      add_lines(y = ~fitted(model), showlegend = FALSE) %>%
+      
+      #Add our title to the legend
+      
+      layout(title = paste0(.x, " vs ", .y,":", " Correlation = ", 
+                            round(cor(merged_df[[paste(.x)]], merged_df[[paste(.y)]], use = "pairwise.complete.obs"), 2)),
+             xaxis = list(title = paste(.x)),
+             yaxis = list(title = paste(.y)))
+    
+  })
+  
+  plot_names<- numeric_pairs %>% tidyr::unite("plot_labels", x_variable:y_variable, sep = "AND", remove = TRUE) %>% dplyr::pull(plot_labels)
+  
+  plot_list<- plot_list %>% purrr::set_names(plot_names)
+  
+}
+
+```
+
+Check the function worked by exploring the relationship between depression and relationship difficulties (caused by pain), based on sex.
+
+```{r}
+grouped_scatterplot_list<- show_all_scatterplots_grouped(vars_of_interest, point_identifier = patient_id, grouping_variable = sex, point_size = 2)
+
+grouped_scatterplot_list[["ref_bpi_relationsANDref_dass_depression"]]
+
+```
+
+Hope this is helpful, feel free to reach out and let me know your thoughts.
+
+
+<body class = "blue">
+
+
+</body>

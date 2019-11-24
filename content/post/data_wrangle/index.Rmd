@@ -1,5 +1,5 @@
 ---
-title: "Clean Real-World (Messy) SpreadSheet Data With R"
+title: "Wrangle & Clean Messy Spreadsheet Data With R"
 author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
 date: '2019-11-23'
 categories:
@@ -393,7 +393,8 @@ The data is now clean and useable!! I'll therefore save it for future use.
 
 ```{r}
 
-saveRDS(joined_data, "clean_data.Rds")
+clean_data<- saveRDS(joined_data, "clean_data.rds")
+
 
 ```
 

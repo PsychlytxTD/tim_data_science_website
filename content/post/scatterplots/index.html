@@ -1,0 +1,112 @@
+---
+title: "Create Interactive Scatterplots Programmatically With R"
+author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
+date: '2019-11-23'
+categories:
+  - Visualisation
+tags:
+  - Visualisation
+output:
+  blogdown::html_page:
+    toc: no
+---
+
+<script src="/rmarkdown-libs/htmlwidgets/htmlwidgets.js"></script>
+<script src="/rmarkdown-libs/plotly-binding/plotly.js"></script>
+<script src="/rmarkdown-libs/typedarray/typedarray.min.js"></script>
+<script src="/rmarkdown-libs/jquery/jquery.min.js"></script>
+<link href="/rmarkdown-libs/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/crosstalk/js/crosstalk.min.js"></script>
+<link href="/rmarkdown-libs/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/plotly-main/plotly-latest.min.js"></script>
+
+
+<style>
+body.blue { background-color:#659dbd;}
+</style>
+<pre class="r"><code>library(fs)
+library(readr)
+library(here)
+library(purrr)
+library(janitor)
+library(dplyr)
+library(stringr)
+library(naniar)
+library(plotly)
+library(stringr)
+library(forcats)</code></pre>
+<p>In this article, I programatically generate interactive scatterplots using the persistent pain dataset that I imported and cleaned in earlier posts.</p>
+<pre class="r"><code>library(fs)
+library(readr)
+library(here)
+library(purrr)
+library(janitor)
+library(dplyr)
+library(stringr)
+library(naniar)
+library(plotly)
+library(stringr)
+library(forcats)</code></pre>
+<pre class="r"><code>clean_data&lt;- readRDS(&quot;clean_data.rds&quot;)</code></pre>
+<p>I select variables of interest for exploratory analyses.</p>
+<pre class="r"><code>vars_of_interest&lt;-  dplyr::select(clean_data, patient_id, sex, ref_hsugp, ref_hsu_allied_health, ref_hsu_specialist, ref_hsu_hospital, ref_hsued, ref_unemployed_pain, ref_daily_morphine, ref_bpi_work, ref_hsu_diagnostic_tests, ref_opioid_freq, ref_full_time, ref_bpi_relations, ref_pcs_total, ref_pseq_total, ref_pcs_helplessness, ref_pcs_magnification,
+ref_pcs_rumination, ref_bpi_sleep, ref_bpi_average, ref_weight, ref_dass_depression,
+ref_dass_anxiety, ref_dass_stress)</code></pre>
+<p>The <code>ggpairs()</code> function from <strong>GGally</strong> creates a matrix of scatterplots, based on the columns that are passed to it. But the function is not very helpful if you have a large number of numeric variables and your computer will probably crash in the process.</p>
+<p>With large datasets, I think it can be helpful to create a named list of scatterplots, the elements of which can be scrolled through (using the R Studio viewer for example) or selected based on the name of the variable in question.</p>
+<p>Here is the code required to generate such a function. Explanatory comments are embedded.</p>
+<pre class="r"><code>show_all_scatterplots&lt;- function(df, point_size = 10) {
+  
+  #Select only numeric variables for plotting
+  
+  df&lt;- dplyr::select_if(df, is.numeric)
+  
+  #Create a two-column dataframe with all possible pairs of numeric variable names
+  
+  numeric_pairs&lt;- tibble::tibble(x_variable = names(df), 
+                                 y_variable = x_variable) %&gt;% expand.grid() 
+  
+  #Iterate over the two columns of names and use them 
+  #to select variables from the data
+  
+  plot_list&lt;- purrr::map2(numeric_pairs$x_variable, numeric_pairs$y_variable, ~ { 
+    
+    #Create linear models for each pair of variables — required for fitting a line 
+    #to each plot
+    
+    model&lt;- lm(df[[.y]] ~ df[[.x]], data = df)
+    
+    #Create a plotting dataframe with complete cases, to avoid an error caused by unequal column lenghts.
+    
+    plotting_df&lt;- tibble::tibble(x_plot_var = df[[.x]], y_plot_var = df[[.y]]) %&gt;% dplyr::filter(complete.cases(.)) 
+    
+    plot_ly(plotting_df, x = ~x_plot_var, y = ~y_plot_var) %&gt;%
+      add_markers(opacity = 0.5, size = point_size, showlegend = FALSE) %&gt;%
+      
+      #Add the line of best fit to each plot
+      #Add a tooltip dhowing the correlation
+      
+      add_lines(y = ~fitted(model))  %&gt;% 
+      layout(title = paste0(.x, &quot; vs &quot;, .y,&quot;:&quot;, &quot; 
+                            Correlation = &quot;, round(cor(df[[.x]],
+                                                       df[[.y]], use = &quot;complete.obs&quot;), 2)),
+                                            xaxis = list(title = paste(.x)),
+                                            yaxis = list(title = paste(.y)))
+  })
+  
+  #Create a naming convention so that plots from the list can be accessed easily.
+  #The convention is variable_one_nameANDvariable_two_name
+  
+  plot_names&lt;- numeric_pairs %&gt;% tidyr::unite(&quot;plot_labels&quot;, x_variable:y_variable, sep = &quot;AND&quot;, remove = TRUE) %&gt;% dplyr::pull(plot_labels)
+  
+  plot_list&lt;- plot_list %&gt;% purrr::set_names(plot_names)
+  
+}</code></pre>
+<p>Check the function works by selecting a scatterplot of average pain intensity vs. sleep disturbance (caused by pain)</p>
+<pre class="r"><code>scatter_by_var&lt;- show_all_scatterplots(vars_of_interest)
+
+scatter_by_var[[&quot;ref_bpi_sleepANDref_bpi_average&quot;]]</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:480px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"visdat":{"5ef678acaee5":["function () ","plotlyVisDat"]},"cur_data":"5ef678acaee5","attrs":{"5ef678acaee5":{"x":{},"y":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"scatter","mode":"markers","opacity":0.5,"size":10,"showlegend":false,"inherit":true},"5ef678acaee5.1":{"x":{},"y":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"scatter","mode":"lines","inherit":true}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"title":"ref_bpi_sleep vs ref_bpi_average: <br />                            Correlation = 0.42","xaxis":{"domain":[0,1],"automargin":true,"title":"ref_bpi_sleep"},"yaxis":{"domain":[0,1],"automargin":true,"title":"ref_bpi_average"},"hovermode":"closest","showlegend":false},"source":"A","config":{"showSendToCloud":false},"data":[{"x":[6,9,5,1,9,5,2,9,8,5,9,4,8,10,9,1,5,9,0,7,5,10,10,4,6,2,8,3,7,4,7,8,6,10,6,0,4,8,7,10,10,9,5,0,8,8,7,8,10,0,6,8,0,10,1,7,10,9,1,9,9,4,6,9,9,2,9,4,1,2,2,7,8,7,8,6,7,9,3,7,7,3,6,8,7,7,7,8,3,10,4,8,2,6,7,8,7,8,7,9,9,9,4,8,0,5,8,9,8,5,10,3,10,0,7,10,3,9,10,8,6,10,3,7,9,8,9,7,10,10,10,6,10,8,0,8,7,10,10,9,10,10,3,10,7,9,7,8,8,8,6,7,3,4,2,5,7,1,3,8,10,8,8,5,5,9,8,10,9,4,8,8,8,9,10,10,7,0,10,4,10,9,9,10,4,8,6,6,9,7,8,4,10,8,2,7,7,3,5,1,3,9,7,8,5,7,3,7,7,3,8,10,10,5,9,1,9,2,5,10,4,9,9,10,9,8],"y":[5,5,5,4,7,6,4,4,6,7,9,4,7,7,8,3,8,5,5,7,7,7,7,3,7,3,7,8,8,5,5,6,6,10,7,2,6,8,7,6,7,8,6,5,6,5,3,5,8,6,5,4,4,8,7,4,6,4,0,6,8,4,5,6,6,3,6,1,7,5,3,6,7,6,6,6,7,4,5,4,6,5,7,8,7,3,6,7,7,7,3,3,4,4,5,8,5,6,6,7,7,5,3,9,8,6,5,4,4,2,8,2,8,5,5,5,7,6,6,5,6,5,7,6,5,8,6,5,3,8,7,7,10,6,5,6,5,6,6,7,2,7,4,8,8,6,3,6,7,7,6,7,4,7,4,4,5,6,5,4,6,6,6,4,3,6,7,7,6,8,8,7,5,8,2,5,6,5,7,3,9,6,7,6,7,5,5,6,5,4,5,7,9,6,3,5,7,6,5,1,5,8,5,4,3,5,4,8,7,3,5,10,7,5,5,3,6,5,5,8,5,7,7,5,6,5],"type":"scatter","mode":"markers","opacity":0.5,"showlegend":false,"marker":{"color":"rgba(31,119,180,1)","size":[55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55],"sizemode":"area","line":{"color":"rgba(31,119,180,1)"}},"textfont":{"size":55},"error_y":{"color":"rgba(31,119,180,1)","width":55},"error_x":{"color":"rgba(31,119,180,1)","width":55},"line":{"color":"rgba(31,119,180,1)","width":55},"xaxis":"x","yaxis":"y","frame":null},{"x":[0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,6,6,6,6,6,6,6,6,6,6,6,6,6,6,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10],"y":[4.01939815312571,4.01939815312571,4.01939815312571,4.01939815312571,4.01939815312571,4.01939815312571,4.01939815312571,4.01939815312571,4.01939815312571,4.27097444719206,4.27097444719206,4.27097444719206,4.27097444719206,4.27097444719206,4.27097444719206,4.27097444719206,4.27097444719206,4.52255074125841,4.52255074125841,4.52255074125841,4.52255074125841,4.52255074125841,4.52255074125841,4.52255074125841,4.52255074125841,4.52255074125841,4.77412703532476,4.77412703532476,4.77412703532476,4.77412703532476,4.77412703532476,4.77412703532476,4.77412703532476,4.77412703532476,4.77412703532476,4.77412703532476,4.77412703532476,4.77412703532476,4.77412703532476,4.77412703532476,5.0257033293911,5.0257033293911,5.02570332939111,5.02570332939111,5.0257033293911,5.02570332939111,5.0257033293911,5.0257033293911,5.02570332939111,5.02570332939111,5.0257033293911,5.02570332939111,5.02570332939111,5.02570332939111,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.27727962345745,5.52885591752375,5.5288559175238,5.5288559175238,5.5288559175238,5.5288559175238,5.5288559175238,5.5288559175238,5.5288559175238,5.5288559175238,5.5288559175238,5.5288559175238,5.5288559175238,5.5288559175238,5.5288559175238,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,5.78043221159015,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.0320085056565,6.28358479972284,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.28358479972285,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892,6.5351610937892],"type":"scatter","mode":"lines","marker":{"color":"rgba(255,127,14,1)","line":{"color":"rgba(255,127,14,1)"}},"error_y":{"color":"rgba(255,127,14,1)"},"error_x":{"color":"rgba(255,127,14,1)"},"line":{"color":"rgba(255,127,14,1)"},"xaxis":"x","yaxis":"y","frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+<body class="blue">
+</body>

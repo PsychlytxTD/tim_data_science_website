@@ -1,5 +1,5 @@
 ---
-title: "Clean Real-World (Messy) SpreadSheet Data With R"
+title: "Wrangle & Clean Messy Spreadsheet Data With R"
 author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
 date: '2019-11-23'
 categories:
@@ -253,7 +253,7 @@ joined_data&lt;- joined_data %&gt;% dplyr::select(-state, -episode_id, -torres_s
 
 joined_data&lt;- joined_data %&gt;% purrr::modify_if(is.factor, forcats::fct_infreq)</code></pre>
 <p>The data is now clean and useable!! I’ll therefore save it for future use.</p>
-<pre class="r"><code>saveRDS(joined_data, &quot;clean_data.Rds&quot;)</code></pre>
+<pre class="r"><code>clean_data&lt;- saveRDS(joined_data, &quot;clean_data.rds&quot;)</code></pre>
 <body class="blue">
 </body>
 </div>
