@@ -141,7 +141,7 @@ Sometimes, we also want to look at subgroups within scatterplots. Doing so is im
 The code for dynamically creating grouped scatterplots is shown below:
 
 ```{r}
-how_all_scatterplots_grouped<- function(df, point_identifier, point_size = NULL, 
+show_all_scatterplots_grouped<- function(df, point_identifier, point_size = NULL, 
                                          grouping_variable) {
   
   group<- enquo(grouping_variable)
