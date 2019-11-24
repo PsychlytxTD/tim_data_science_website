@@ -10,7 +10,7 @@ authors:
 superuser: true
 
 # Role/position
-role: Clinical Psychologist, B.A. (Med & Com) Gr.Dip Psych PGr.Dip.Psych MClinPsych,       The University of Melbourne
+role: Clinical Psychologist, B.A. (Med & Com) Gr.Dip Psych PGr.Dip.Psych MClinPsych, The University of Melbourne
 
 # Organizations/Affiliations
 #organizations:
@@ -21,12 +21,12 @@ role: Clinical Psychologist, B.A. (Med & Com) Gr.Dip Psych PGr.Dip.Psych MClinPs
 bio: Tim is a Clinical Psychologist and founder of **Psychlytx**, a company that provides innovative software and data science consultancy in the field of health, particularly mental health.
 
 interests:
-- Interpersonal conflict & family difficulties
+- Depression & Anxiety
+- Family & Relationship Issues
+- Spirituality
+- Mindfulness
 - OCD
-- Persistent depression & anxiety
-- Medically unexplained symptoms
-- Spiritual & existential issues
-- Male Psychology
+- Confidence & Identity
 
 #education:
   #courses:
@@ -77,5 +77,4 @@ user_groups:
 - psychologist
 #- Visitors
 ---
-Tim is a Clinical Psychologist who has practiced widely across hospital, community and private practice settings. He works in an atmosphere of warmth and respect, helping people to overcome perceived limitations and to gain greater freedom, peace and mastery in their lives. Tim draws on an emotion-focused approach and is currently completing training for advanced accreditation in Intensive Short-Term Dynamic Psychotherapy (ISTDP).
-
+Tim is a Clinical Psychologist who provides compassionate and effective psychological care. He has a background in mindfulness, meditation and Intensive Short-Term Dynamic Psychotherapy, and has practiced across diverse settings, including St Vincent's Hospital, The Royal Children's Hospital, Epworth Rehabilitation and The University of Melbourne. Tim works in a climate of warmth and respect, helping people to overcome perceived limitations and achieve greater freedom, peace and mastery in their lives.
