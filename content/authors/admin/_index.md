@@ -1,6 +1,6 @@
 ---
 # Display name
-name: Timothy Deitz
+name: Clinical Psychologist & Data Scientist
 
 # Username (this should match the folder name)
 authors:
@@ -10,15 +10,15 @@ authors:
 superuser: true
 
 # Role/position
-role: Data Scientist & Clinical Psychologist
+role: Psychlytx | Epworth
 
 # Organizations/Affiliations
 organizations:
-- name: Psychlytx
-  url: "https://psychlytx.com/"
+- name: 
+  url: 
 
 # Short bio (displayed in user profile at end of posts)
-bio: Tim is a Clinical Psychologist and founder of **Psychlytx**, a company that provides innovative software and data science consultancy in the field of health, particularly mental health.
+bio: Tim is a therapist and the founder of **Psychlytx**, a company that provides innovative software and data science consultancy in the field of health, particularly mental health.
 
 interests:
 - Interactive Web Applications
