@@ -1,0 +1,302 @@
+---
+title: "Dynamic Exploratory Visualisation With R"
+author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
+date: '2019-11-23'
+categories:
+  - Visualisation
+tags:
+  - Visualisation
+output:
+  blogdown::html_page:
+    toc: no
+---
+<style>
+body.blue { background-color:#659dbd;}
+</style>
+
+```{r, echo = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE, out.width = '100%')
+
+```
+
+
+```{r}
+library(fs)
+library(readr)
+library(here)
+library(purrr)
+library(janitor)
+library(dplyr)
+library(stringr)
+library(naniar)
+library(plotly)
+library(stringr)
+library(forcats)
+library(magrittr)
+```
+
+In previous articles, I imported and cleaned a dataset of chronic pain outcomes for an allied health treatment program.
+
+I start by reading in this cleaned data.
+
+```{r}
+
+clean_data<- readRDS("clean_data.rds")
+
+```
+
+I select variables of interest to focus on in analyses.
+
+```{r}
+vars_of_interest<-  dplyr::select(clean_data, patient_id, sex, ref_hsugp, ref_hsu_allied_health, ref_hsu_specialist, ref_hsu_hospital, ref_hsued, ref_unemployed_pain, ref_daily_morphine, ref_bpi_work, ref_hsu_diagnostic_tests, ref_opioid_freq, ref_full_time, ref_bpi_relations, ref_pcs_total, ref_pseq_total, ref_pcs_helplessness, ref_pcs_magnification,
+ref_pcs_rumination, ref_bpi_sleep, ref_bpi_average, ref_weight, ref_dass_depression,
+ref_dass_anxiety, ref_dass_stress)
+```
+
+Next, I use some tidy evaluation and functional programing principles write functions that dynamically iterate through these variables and create exploratory plots.
+
+I begin with boxpots 
+
+```{r}
+show_all_boxplots<- function(df, label) {
+  
+  identifier<- enquo(label)
+  
+  #Iterate over all numeric variables
+  #Iterate over names of these variables (needed for labels)
+  
+  num_vars<- dplyr::select_if(df, is.numeric)
+  num_var_names<- names(num_vars)
+  
+  plot_list<- purrr::pmap(list(num_vars, num_var_names, dplyr::select(df, !!identifier)), ~{
+    
+    
+    plot<- ggplot(df, aes(x = "", y = ..1, 
+                                    text = paste("Identifier:", ..3, "<br>",
+                                                 ..2, "value:", ..1, "<br>",
+                                                 ..2, "mean:", round(mean(..1, na.rm = TRUE), 2), "<br>",
+                                                 ..2, "sd:", round(sd(..1, na.rm = TRUE), 2), "<br>",
+                                                 ..2, "N outliers:", 
+                                                 nrow(dplyr::filter(df, 
+                                                                    ..1 > (mean(..1, na.rm = TRUE) + 2 * sd(..1, na.rm = TRUE))))
+                                                 
+                                    ))) +
+      
+      # make boxplot transparent with alpha = 0
+      geom_boxplot(alpha = 0) +
+      
+      # If a given point is an outlier, colour it red
+      
+      geom_jitter(color = ifelse(..1 > (mean(..1, na.rm = TRUE) + 
+                                         2 * sd(..1, na.rm = TRUE)), 'red', 'steelblue'), alpha = 0.3) +
+      
+      theme(axis.title.x=element_blank()) + ylab(paste(..2))
+    
+    ggplotly(plot, tooltip = "text")
+    
+    
+  })
+  
+  #Due to plotly bug, we need to set opacity of boxplot markers
+  #to zero, so that outliers aren't duplicated on the plot.
+  #Below, go inside each plot object in the list to do this.
+  
+  for(i in 1:length(plot_list)) {
+    
+    plot_list[[i]][["x"]][["data"]][1][[1]][["marker"]][["opacity"]]<- 0
+    
+  }
+  
+  plot_list<- plot_list %>% purrr::set_names(num_var_names)
+  
+  
+  return(plot_list)
+}
+
+```
+
+
+Test the function:
+
+```{r}
+box_list<- show_all_boxplots(vars_of_interest, sex)
+
+#Number of visits to a specialist in the past 3 months 
+
+box_list[["ref_hsu_specialist"]]
+
+```
+
+Next I write a function to dynamically plot histograms
+
+```{r}
+show_all_histograms<- function(df) {
+  
+  numeric_data<- dplyr::select_if(df, is.numeric)
+  
+  plot_list<- purrr::map2(numeric_data, names(numeric_data), ~{
+    
+    plot<- ggplot(numeric_data, aes(x = .x)) + geom_histogram() + xlab(paste0(.y)) + ylab(paste0(.y))
+    
+    ggplotly(plot)
+    
+  })
+  
+  plot_list<- plot_list %>% purrr::set_names(names(numeric_data))
+  
+}
+
+```
+
+Test the function:
+
+```{r}
+
+hist_list<- show_all_histograms(vars_of_interest)
+
+#Plot DASS-21 stress for all participants
+
+hist_list[["ref_dass_stress"]]
+
+```
+
+
+Now write a function for density plots
+
+```{r}
+show_all_density<- function(df, gaussian_kernel = 2.5) {
+  
+  numeric_data<- dplyr::select_if(df, is.numeric)
+  
+  plot_list<- purrr::map2(numeric_data, names(numeric_data), ~ {
+    
+    #Show the skew and kurtosis of each plot in a tooltip
+    
+    density_plots<- ggplot(numeric_data, aes(x = .x,
+                                             text = paste("skew:", round(psych::skew(.x), 2), 
+                                                          "<br>",
+                                                          "kurtosis:", round(psych::kurtosi(.x), 2)))) +
+      
+      geom_density(fill = 'steelblue', bw = gaussian_kernel,  
+                   alpha = 0.7) +
+      
+      #Add the rug to the bottom of the density plot
+      
+      geom_rug() + xlab(paste0(.y))
+    
+    plotly::ggplotly(density_plots)
+    
+  })
+  
+  plot_list<- plot_list %>% purrr::set_names(names(numeric_data))
+  
+}
+
+```
+
+Test the function:
+
+```{r}
+density_list<- show_all_density(vars_of_interest)
+
+#Plot pain-related sleep disturbance
+
+density_list[["ref_bpi_sleep"]]
+
+```
+
+Write a function to make QQ plots
+
+```{r}
+
+show_all_qqplots<- function(df) {
+  
+  numeric_data<- dplyr::select_if(df, is.numeric)
+  
+  plot_list<- purrr::map(numeric_data, ~{
+    
+    qqplots<- ggplot(numeric_data, aes(sample = .x)) + stat_qq() + stat_qq_line()
+    
+    plotly::ggplotly(qqplots)
+    
+  })
+  
+  plot_list<- plot_list %>% purrr::set_names(names(numeric_data))
+  
+}
+
+
+
+```
+
+Test the function:
+
+```{r}
+
+qq_list<- show_all_qqplots(vars_of_interest)
+
+#Plot visits to a GP in the past 3 months
+
+qq_list[["ref_hsugp"]]
+
+```
+
+Combine all of the above plot types into a subplot, accessible by variable name:
+
+```{r}
+show_distributions<- function(df, label, gaussian_kernel = 2.5) {
+  
+  label_unquoted<- rlang::enquo(label)
+
+  numeric_data<- dplyr::select_if(df, is.numeric)
+  
+  #Make the list of boxplots
+  
+  boxplot_list<- show_all_boxplots(df, !!label_unquoted)
+  
+  #Make the list of density plots
+  
+  density_list<- show_all_density(df, gaussian_kernel)
+  
+  #Make the list of histograms
+  
+  histogram_list<- show_all_histograms(df)
+  
+  #Make the list of QQ plots
+  
+  qq_list<- show_all_qqplots(df)
+  
+  #Iterate through the plot-specific lists to make a new list 
+ 
+  plots_list<- purrr::pmap(list(boxplot_list, density_list, histogram_list, qq_list),
+                           ~plotly::subplot(..1, ..2, ..3, ..4, nrows = 2, titleY = TRUE))
+  
+  plots_list<- plots_list %>% purrr::set_names(names(numeric_data))
+  
+}  
+
+```
+
+Test the function:
+
+```{r}
+dist_list<- show_distributions(vars_of_interest, sex)
+
+#Plot average pain intensity
+
+dist_list[["ref_bpi_average"]]
+
+#Plot the impact of pain on relationships
+
+dist_list[["ref_bpi_sleep"]]
+
+```
+
+
+
+<body class = "blue">
+
+
+</body>
+

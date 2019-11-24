@@ -1,2 +1,2 @@
 /* Source Themes Academic v4.4.0 | https://sourcethemes.com/academic/ */
-h1,h2,h3,h4,h5,h6,p,li{color:#fff}i.fa-li.fas.fa-graduation-cap{color:#daad86}code.hljs{padding:0}
+h1,h2,h3,h4,h5,h6,p,li{color:#fff}i.fa-li.fas.fa-graduation-cap{color:#daad86}.article-container{max-width:100%}

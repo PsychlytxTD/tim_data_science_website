@@ -1,5 +1,5 @@
 ---
-title: "Supercharged Data Cleaning with R (Part Two - Data Wrangling)"
+title: "Clean Real-World (Messy) SpreadSheet Data With R"
 author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
 date: '2019-11-23'
 categories:
@@ -21,11 +21,12 @@ output:
 <li><a href="#convert-variable-data-types">Convert Variable Data Types</a></li>
 <li><a href="#recode-categorical-variables">Recode Categorical Variables</a></li>
 <li><a href="#drop-variables">Drop Variables</a></li>
+<li><a href="#convert-character-variables-to-factors">Convert Character Variables To Factors</a></li>
 </ul>
 </div>
 
 <style>
-body.blue { background-color:#2b3f60;}
+body.blue { background-color:#659dbd;}
 </style>
 <pre class="r"><code>library(fs)
 library(readr)
@@ -38,10 +39,10 @@ library(naniar)
 library(plotly)
 library(stringr)
 library(forcats)</code></pre>
-<p>In my previous article, I wrote a function for importing three messy csv files and merged them into a single, clean(ish) dataframe.</p>
-<p>Let’s use it to pull in that dataframe.</p>
 <div id="data-import" class="section level2">
 <h2>Data Import</h2>
+<p>In my previous article, I wrote a function for importing three messy csv files and merged them into a single, clean(ish) dataframe.</p>
+<p>I’ll now use that function to retrieve the data</p>
 <pre class="r"><code>#Source the function, which is stored in my working directory 
 
 source(&quot;import_data.R&quot;)
@@ -103,9 +104,9 @@ head(joined_data)</code></pre>
 </div>
 <div id="clean-variable-names" class="section level2">
 <h2>Clean Variable Names</h2>
-<p>It is now time to wrangle my data into a useable form.</p>
-<p>First — I need to clean up my variable names. They are a mess of inconsistent upper and lower casing and have letters in strange places. For example, <code>EEnd_BPIPainInterference</code>.</p>
-<p>The <code>make_clean_names()</code> function from <code>janitor</code> will fix the majority of problems with variable names</p>
+<p>It is now time to wrangle the data into a useable form.</p>
+<p>First, I need to clean up my variable names. They are a mess of inconsistent upper and lower casing and have letters in strange places (e.g. <strong>EEnd_BPIPainInterference</strong>).</p>
+<p>Fortunately, <code>make_clean_names()</code> from the <strong>janitor</strong> package will remedy most problems with messy variable names.</p>
 <pre class="r"><code>names(joined_data)&lt;- janitor::make_clean_names(names(joined_data))
 
 #Take a look
@@ -124,34 +125,34 @@ dplyr::select(joined_data, contains(&quot;interference&quot;))</code></pre>
 ##  9 8.2857             0                  7.5714           0                
 ## 10 5                  0                  6.8571           0                
 ## # … with 265 more rows</code></pre>
-<p>You’ll see that variable names are now all lower case, and spearated with underscores.</p>
-<p>Now I want to get rid of the strange <code>e_</code> that preceeds the time 2 variables (e.g. <code>e_end_bpi_pain_interference</code>). I also want to put an underscore between any words and digits. Regex simplifies both of these tasks.</p>
+<p>You’ll see that variable names are now consistently in lower case, and are spearated with underscores.</p>
+<p>I also want to get rid of the strange <strong>e_</strong> that preceeds all post-treatment variables (e.g. <strong>e_end_bpi_pain_interference</strong>). I also want to put an underscore between any words and digits.</p>
 <pre class="r"><code>#Fix the e issue
 names(joined_data)&lt;- stringr::str_replace_all(names(joined_data), &quot;^e_&quot;, &quot;&quot;)
 names(joined_data)&lt;- stringr::str_replace_all(names(joined_data), &quot;_e_&quot;, &quot;_&quot;)
 
-#Fix the digit-word issue
+#Fix the digit-word issue by finding all variables that have a &#39;q&#39; followed by any digit. Replace them with q_digit.
 
 names(joined_data)&lt;- stringr::str_replace_all(names(joined_data), &quot;q(?=\\d+)&quot;, &quot;q_&quot;)</code></pre>
 </div>
 <div id="manage-missing-value-codes" class="section level2">
 <h2>Manage Missing Value Codes</h2>
-<p>The next task is to make sure that missing data has been coded consistently. From my knowledge of the data, I am aware that missing responses can be indicated by <code>-2</code>, <code>-5</code>, <code>-4</code> and <code>99</code>, depending on the variable. But missing data might appear in other ways too.</p>
-<p>The <code>Naniar</code> package has a pre-made <code>common_na_strings</code> object (a character vector), which lists many commonly used conventions that are commonly used to denote missingness (e.g. “n/a”, “N/A”, “missing”). I add the values above to this object and then explicitly encode all missing responses in the dataframe as <code>NA</code>.</p>
+<p>Next, I make sure that missing values have been coded consistently. From my knowledge of the data, I am aware that missing responses can be indicated by <strong>-2</strong>, <strong>-5</strong>, <strong>-4</strong> and <strong>99</strong>, depending on the variable. Missing data might appear in other ways too.</p>
+<p><code>common_na_strings</code> from the <strong>Naniar</strong> package contains common missing value codes (e.g. “n/a”, “N/A”, “missing”). I add my known mssing value codes to this object and then use it to explicitly code all missing values as <code>NA</code>.</p>
 <pre class="r"><code>na_strings&lt;- c(naniar::common_na_strings, &quot;-2&quot;, &quot;-5&quot;, &quot;-4&quot;, &quot;-99&quot;)
 
 joined_data&lt;- joined_data %&gt;% naniar::replace_with_na_all(condition = ~.x %in% na_strings)</code></pre>
 </div>
 <div id="remove-empty-or-duplicate-rows" class="section level2">
 <h2>Remove Empty or Duplicate Rows</h2>
-<p>I then want to remove any rows in the dataframe that are completely empty, and to remove rows that have the same <code>patient_id</code>, since this indicates row duplication.</p>
+<p>I then want to remove any rows in the dataframe that are completely empty or that have the same <code>patient_id</code> (indicating row duplication).</p>
 <pre class="r"><code>joined_data&lt;- janitor::remove_empty(joined_data, which = c(&quot;rows&quot;, &quot;cols&quot;))
 
 joined_data&lt;- joined_data %&gt;% dplyr::distinct(patient_id, .keep_all = TRUE)</code></pre>
 </div>
 <div id="convert-variable-data-types" class="section level2">
 <h2>Convert Variable Data Types</h2>
-<p>Next, I ensure that quantitative variables have a numeric data type. The easiest way to accomplish this is to first store the names of quantitative variables in a character vector. I then use this vector to transform the variables of interest.</p>
+<p>Next, I ensure that quantitative variables have a numeric data type. I first store the names of quantitative variables in a character vector, then use this vector to transform the variables of interest.</p>
 <pre class="r"><code>numeric_vars&lt;- stringr::str_subset(names(joined_data), 
                         regex(&quot;pcs|pseq|dass|weight|height|tests|hours_worked|morphine|bpi_|hsu|allied_health&quot;))
 
@@ -160,12 +161,12 @@ joined_data&lt;- joined_data %&gt;% mutate_at(vars(numeric_vars), as.numeric)</c
 <pre class="r"><code>date_vars&lt;- stringr::str_subset(names(joined_data), regex(&quot;date|dob&quot;))
 
 joined_data&lt;- joined_data %&gt;% mutate_at(vars(date_vars), lubridate::dmy)</code></pre>
-<p>At the moment, there are several character variables that have only two possible values — 0 or 1. It would be best to convert their data type to numeric, so that I can include them in modelling analyses later on (e.g. regression).</p>
+<p>Several existing character variables have a binary response format — 0 or 1. It is best to convert their data type to numeric, so that I can include them in modelling analyses later on (e.g. regression).</p>
 <pre class="r"><code>joined_data&lt;- joined_data %&gt;% dplyr::mutate_if(~any(c(0, 1, 2, NA) %in% .x) &amp;&amp; length(unique(as.numeric(.x))) &lt;= 3, as.numeric)</code></pre>
 </div>
 <div id="recode-categorical-variables" class="section level2">
 <h2>Recode Categorical Variables</h2>
-<p>Another task is to convert the codes of some character variables into meaningful categories. Because this step is lengthy, I don’t include all the output. A few examples of the recoding process should suffice.</p>
+<p>Another task is to convert the numeric codes of some character variables into meaningful categories. Because this step is lengthy, I don’t include all the output here. A few examples of the recoding process suffice to demonstrate what is required.</p>
 <pre class="r"><code>joined_data$pain_source&lt;- dplyr::recode(joined_data$pain_source,
                                         `1` = &quot;Injury at home&quot;,
                                         `2` = &quot;Injury at work/school&quot;,
@@ -188,8 +189,8 @@ joined_data$pain_duration&lt;- dplyr::recode(joined_data$pain_duration,
                                           `5` = &quot;More than 5 years&quot;,
                                           .default = NA_character_
                                           )</code></pre>
-<p>Unfortunately, the recoding process has led to a large number of possible categories for some character variables. Do I really need to distinguish whether a person’s injury occured to their left knee or right knee? Surely a category like <code>leg</code> would be better for any analyses.</p>
-<p>I use <code>fct_collapse()</code> from the <code>forcats</code> package to manually agglomerate certain response categories.</p>
+<p>Unfortunately, the recoding process has led to a large number of categories within some character variables. Do I really need to distinguish whether a person’s injury occured to their left knee or right knee? It would be better to condense responses like these (e.g. ‘leg’).</p>
+<p>I use <code>fct_collapse()</code> from the <strong>forcats</strong> package to manually agglomerate certain response categories.</p>
 <pre class="r"><code>joined_data&lt;- joined_data %&gt;% dplyr::mutate(
   
   end_bpi_main_pain = forcats::fct_collapse(joined_data$end_bpi_main_pain,
@@ -238,17 +239,20 @@ joined_data&lt;- joined_data %&gt;% purrr::keep(~length(unique(.x)) &gt;= 2)
 #Drop variables with over 50% of responses missing
 joined_data&lt;- joined_data %&gt;% discard(~mean(is.na(.x)) &gt;= .5) 
 
-#Drop miscellaneous variables that I know I don&#39;t kneed
+#Drop miscellaneous variables that I don&#39;t kneed
 
 joined_data&lt;- joined_data %&gt;% dplyr::select(-state, -episode_id, -torres_strait_isl, -ref_comp_status, -end_height, -end_weight,-contains(&quot;interpreter&quot;), -contains(&quot;hours_worked&quot;), -contains(&quot;survey_category_id&quot;), 
                                       -contains(&quot;survey_schedule_id&quot;), -contains(&quot;key&quot;),
                                       -contains(&quot;retraining&quot;), -contains(&quot;opioid_maint&quot;),
                                       -contains(&quot;ref_voluntary&quot;), -contains(&quot;count_analg_ex_opi&quot;))</code></pre>
-<p>#Convert Character Variables To Factors</p>
+</div>
+<div id="convert-character-variables-to-factors" class="section level2">
+<h2>Convert Character Variables To Factors</h2>
 <p>Finally, I convert all character variables to factors, ensure that missing values have an explicit factor level, and reorder the levels by response frequencies.</p>
 <pre class="r"><code>joined_data&lt;- purrr::modify_if(joined_data, is.character, forcats::fct_explicit_na)
 
 joined_data&lt;- joined_data %&gt;% purrr::modify_if(is.factor, forcats::fct_infreq)</code></pre>
+<p>The data is now clean and useable!!</p>
 <body class="blue">
 </body>
 </div>

@@ -1,5 +1,5 @@
 ---
-title: "Supercharged Data Cleaning with R (Part One - Data Import)"
+title: "Import Real-World (Messy) Spreadsheet Data With R"
 author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
 date: '2019-11-23'
 categories:
@@ -11,7 +11,7 @@ output:
     toc: no
 ---
 <style>
-body.blue { background-color:#2b3f60;}
+body.blue { background-color:#659dbd;}
 </style>
 
 ## Importing the Data
@@ -41,9 +41,9 @@ library(forcats)
 
 ```
 
-By using the `here()` function from the `fs` package (as opposed to an absolute file path), I ensure that people who have my data can run this script easily.
+By using `here()` from the **fs** package (in contrast to an absolute file path), I ensure that people who have my data can run this script easily.
 
-I next want to see which files are showing up in my working directory. I want to import spreadsheets with a `.csv` extension and leave the original versions, which hav an `.xlsx` extension.
+I then list the files present in my working directory. I want to import spreadsheets with a `.csv` extension and discard files with an `.xlsx` extension.
 
 ```{r}
 
@@ -51,7 +51,7 @@ fs::dir_ls(path = here())
 
 ```
 
-I use a basic regular expression to capture only the csv files. Then I import each of these files and store them as separate dataframes in a list.
+I use a basic regular expression to capture only the `.csv` files. Then I import each one and store it in a list.
 
 ```{r}
 csv_files<- fs::dir_ls(here(), regexp = "\\.csv$")
@@ -61,7 +61,7 @@ pain_data_raw<- csv_files %>% purrr::map( ~readr::read_csv(.x)) %>%
 
 ```
 
-Check there is now a list of 3 dataframes:
+Check that I now have a list of 3 dataframes.
 
 ```{r}
 
@@ -69,9 +69,11 @@ str(pain_data_raw, max.level = 0)
 
 ```
 
-It seems to have worked. But I want to check that each dataframe has the same variables, and that these variables have identical data types (character, logical, numeric etc.). The `compare_df_cols()` function from the `janitor` package lets you compare multiple dataframes according to the presence and data type of the variables they contain.
+Yes!
 
-The output reveals a problem: some variables have a different data type depending on the dataframe they belong to!
+I also want to check that each dataframe contains the same variables, and that those variables have identical data types (character, logical, numeric etc.). `compare_df_cols()` function from the **janitor** package lets you compare multiple dataframes according to the presence and data type of the variables they contain.
+
+The output reveals a problem: some variables have a different data type depending on the dataframe they belong to. For example, the **EEnd_BPIPainInterference** column (which measures pain interference in a person's daily activities) shows up as a numeric variable for the first and third dataframes, but as a character varible for the second dataframe. This is most likely due to an error when data was entered into one of the spreadsheets.
 
 ```{r}
 
@@ -81,9 +83,7 @@ data_comparison %>% dplyr::filter(column_name == 'EEnd_BPIPainInterference')
 
 ```
 
-For example, the `EEnd_BPIPainInterference` column (which measures pain interference in daily activities) is specified as a numeric variable for the first and third dataframes, but as a character varible in the second dataframe. This is most likely due to an error when data was entered into one of the spreadsheets.
-
-When you have many columns (i.e. more than 100) and data entry mistakes are probable, it is sometimes best to manually import all columns as character variables, and then alter their type later. This can be done by adding `col_types = cols(.default = "c")` to the original code.
+When you have many columns (i.e. more than 100) and data entry mistakes are probable, it is sometimes best to manually import all columns as character variables, and then alter their type later. Therefore, I add `col_types = cols(.default = "c")` to the original code.
 
 ```{r}
 pain_data_raw<- csv_files %>% purrr::map( ~readr::read_csv(.x, col_types = cols(.default = "c"))) %>% 
@@ -91,7 +91,7 @@ pain_data_raw<- csv_files %>% purrr::map( ~readr::read_csv(.x, col_types = cols(
 
 ```
 
-If I now compare each dataframe again, all variables are of the character type. But there is another problem. Certain variables appear in one dataframe and not the others, or appear in two dataframes but not in the third. 
+If I now re-examine the dataframe comparison, all variables are of the character type. But there is another problem. Certain variables appear in one dataframe and not the others, or appear in two of the dataframes but not the third. 
 
 ```{r}
 
@@ -99,7 +99,7 @@ head(data_comparison)
 
 ```
 
-I **only** want to retain variables that are common to each dataframe. The first step in doing so is to store the names of these shared variables in a character vector.
+I **only** want to retain variables that are common to each dataframe. The first step in doing so is to store the names of the shared variables in a single character vector.
 
 ```{r}
 matching_vars<- data_comparison %>% dplyr::filter_at(vars(-column_name), all_vars(!is.na(.))) %>% 
@@ -110,8 +110,7 @@ matching_vars<- data_comparison %>% dplyr::filter_at(vars(-column_name), all_var
 head(matching_vars)
 ```
 
-
-I then iterate through each dataframe and select variables contained in the character vector.
+I then iterate through each dataframe and select variables contained in that character vector.
 
 ```{r}
 
@@ -138,8 +137,7 @@ glimpse(joined_data) %>% print(n = 10)
 
 ```
 
-
-Having succeeded at importing and merging the data, it is a good idea to store the above steps into a reusable function.
+Having imported and merged the data, I incorporate the data importation stesp into a reusable function for later use.
 
 ```{r}
 
@@ -163,6 +161,7 @@ joined_data<- dplyr::bind_rows(pain_data_complete)
 
 ```
 
+Now that I have the data, it's time to clean it up.
 
 <body class = "blue">
 

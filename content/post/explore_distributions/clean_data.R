@@ -1,82 +1,9 @@
----
-title: "Clean Real-World (Messy) SpreadSheet Data With R"
-author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
-date: '2019-11-23'
-categories:
-  - Data Cleaning
-tags:
-  - Data Cleaning
-output:
-  blogdown::html_page:
-    toc: yes
----
-<style>
-body.blue { background-color:#659dbd;}
-</style>
 
-
-```{r, echo = FALSE}
-
-knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE, out.width = '100%')
-
-```
-
-```{r}
-library(fs)
-library(readr)
-library(here)
-library(purrr)
-library(janitor)
-library(dplyr)
-library(stringr)
-library(naniar)
-library(plotly)
-library(stringr)
-library(forcats)
-
-```
-
-## Data Import
-
-In my previous article, I wrote a function for importing three messy csv files and merged them into a single, clean(ish) dataframe.
-
-I'll now use that function to retrieve the data
-
-```{r}
-#Source the function, which is stored in my working directory 
-
-source("import_data.R")
-
-joined_data<- import_data()
-
-#Check out the first few rows of data
-
-head(joined_data)
-
-```
-
-## Clean Variable Names
-
-It is now time to wrangle the data into a useable form.
-
-First, I need to clean up my variable names. They are a mess of inconsistent upper and lower casing and have letters in strange places (e.g. **EEnd_BPIPainInterference**). 
-
-Fortunately, `make_clean_names()` from the **janitor** package will remedy most problems with messy variable names.
-
-```{r}
+clean_data<- function(joined_data) {
 
 names(joined_data)<- janitor::make_clean_names(names(joined_data))
 
-#Take a look
-dplyr::select(joined_data, contains("interference"))
 
-```
-
-You'll see that variable names are now consistently in lower case, and are spearated with underscores.
-
-I also want to get rid of the strange **e_** that preceeds all post-treatment variables (e.g. **e_end_bpi_pain_interference**). I also want to put an underscore between any words and digits.
-
-```{r}
 #Fix the e issue
 names(joined_data)<- stringr::str_replace_all(names(joined_data), "^e_", "")
 names(joined_data)<- stringr::str_replace_all(names(joined_data), "_e_", "_")
@@ -85,67 +12,26 @@ names(joined_data)<- stringr::str_replace_all(names(joined_data), "_e_", "_")
 
 names(joined_data)<- stringr::str_replace_all(names(joined_data), "q(?=\\d+)", "q_")
 
-```
-
-## Manage Missing Value Codes
-
-Next, I make sure that missing values have been coded consistently. From my knowledge of the data, I am aware that missing responses can be indicated by **-2**, **-5**, **-4** and **99**, depending on the variable. Missing data might appear in other ways too.
-
-`common_na_strings` from the **Naniar** package contains common missing value codes (e.g. "n/a", "N/A", "missing"). I add my known mssing value codes to this object and then use it to explicitly code all missing values as `NA`.
-
-```{r}
-
 na_strings<- c(naniar::common_na_strings, "-2", "-5", "-4", "-99")
 
 joined_data<- joined_data %>% naniar::replace_with_na_all(condition = ~.x %in% na_strings)
 
-```
-
-## Remove Empty or Duplicate Rows
-
-I then want to remove any rows in the dataframe that are completely empty or that have the same `patient_id` (indicating row duplication).
-
-```{r}
 joined_data<- janitor::remove_empty(joined_data, which = c("rows", "cols"))
 
 joined_data<- joined_data %>% dplyr::distinct(patient_id, .keep_all = TRUE)
 
-```
-
-## Convert Variable Data Types
-
-Next, I ensure that quantitative variables have a numeric data type. I first store the names of quantitative variables in a character vector, then use this vector to transform the variables of interest.
-
-```{r}
-numeric_vars<- stringr::str_subset(names(joined_data), 
-                        regex("pcs|pseq|dass|weight|height|tests|hours_worked|morphine|bpi_|hsu|allied_health"))
+numeric_vars<- stringr::str_subset(names(joined_data),
+                                   regex("pcs|pseq|dass|weight|height|tests|hours_worked|morphine|bpi_|hsu|allied_health"))
 
 joined_data<- joined_data %>% mutate_at(vars(numeric_vars), as.numeric)
-```
 
-I follow a similar process to specify variables with a date data type. 
 
-```{r}
 date_vars<- stringr::str_subset(names(joined_data), regex("date|dob"))
 
 joined_data<- joined_data %>% mutate_at(vars(date_vars), lubridate::dmy)
 
-```
-
-Several existing character variables have a binary response format — 0 or 1. It is best to convert their data type to numeric, so that I can include them in modelling analyses later on (e.g. regression).
-
-```{r}
-
 joined_data<- joined_data %>% dplyr::mutate_if(~any(c(0, 1, 2, NA) %in% .x) && length(unique(as.numeric(.x))) <= 3, as.numeric)
 
-```
-
-
-## Recode Categorical Variables
-
-Another task is to convert the numeric codes of some character variables into meaningful categories. Because this step is lengthy, I don't include all the output here. A few examples of the recoding process suffice to demonstrate what is required.
-
-```{r}
 
 joined_data$pain_source<- dplyr::recode(joined_data$pain_source,
                                         `1` = "Injury at home",
@@ -158,7 +44,7 @@ joined_data$pain_source<- dplyr::recode(joined_data$pain_source,
                                         `8` = "No obvious cause",
                                         `99` = "Other cause",
                                         .default = NA_character_
-                                        )
+)
 
 
 joined_data$pain_duration<- dplyr::recode(joined_data$pain_duration,
@@ -168,20 +54,17 @@ joined_data$pain_duration<- dplyr::recode(joined_data$pain_duration,
                                           `4` = "2-5 years",
                                           `5` = "More than 5 years",
                                           .default = NA_character_
-                                          )
-
-```
+)
 
 
-```{r, echo = FALSE}
-joined_data$country_of_birth<- dplyr::recode(joined_data$country_of_birth, `1` = "Australia", 
+joined_data$country_of_birth<- dplyr::recode(joined_data$country_of_birth, `1` = "Australia",
                                              `2` = "New Zealand",   `9` = "Other", .default = NA_character_)
 
 joined_data$sex<- dplyr::recode(joined_data$sex, `1` = "Male", `2` = "Female", `3` = "Not stated/described", .default = NA_character_)
 
 joined_data$state<- dplyr::recode(joined_data$state, `2` = "Victoria", .default = NA_character_)
 
-joined_data$referral_source<- dplyr::recode(joined_data$referral_source, 
+joined_data$referral_source<- dplyr::recode(joined_data$referral_source,
                                             `10` = "GP/Nurse",
                                             `11` = "Specialist", `12` = "Pain management service",
                                             `13` = "Public hospital", `14` = "Private hospital",
@@ -213,7 +96,7 @@ joined_data$episode_end_mode<- dplyr::recode(joined_data$episode_end_mode,
                                              `6` = "Referral did not proceed to episode start",
                                              `7` = "Lost to contact",
                                              .default = NA_character_
-                                             )
+)
 
 joined_data$ref_pain_description<- dplyr::recode(joined_data$ref_pain_description,
                                                  `1` = "Always present (same intensity)",
@@ -223,7 +106,7 @@ joined_data$ref_pain_description<- dplyr::recode(joined_data$ref_pain_descriptio
                                                  `5` = "Rarely present",
                                                  `6` = "No longer present",
                                                  .default = NA_character_
-                                                 )
+)
 
 joined_data$end_pain_description<- dplyr::recode(joined_data$end_pain_description,
                                                  `1` = "Always present (same intensity)",
@@ -271,7 +154,7 @@ joined_data$ref_bpi_main_pain<- dplyr::recode(joined_data$ref_bpi_main_pain,
                                               `82` = "Mid back",
                                               `83` = "Low back",
                                               .default = NA_character_
-                                              )
+)
 
 joined_data$end_bpi_main_pain<- dplyr::recode(joined_data$end_bpi_main_pain,
                                               `51` = "Head",
@@ -309,32 +192,10 @@ joined_data$end_bpi_main_pain<- dplyr::recode(joined_data$end_bpi_main_pain,
                                               `83` = "Low back",
                                               .default = NA_character_
 )
-```
 
-Unfortunately, the recoding process has led to a large number of categories within some character variables. Do I really need to distinguish whether a person's injury occured to their left knee or right knee? It would be better to condense responses like these (e.g. 'leg').
-
-I use `fct_collapse()` from the **forcats** package to manually agglomerate certain response categories.
-
-```{r}
 joined_data<- joined_data %>% dplyr::mutate(
-  
+
   end_bpi_main_pain = forcats::fct_collapse(joined_data$end_bpi_main_pain,
-                      "Arm" = c("Left forearm", "Right forearm", "Left wrist", "Right wrist",
-                                "Left elbow", "Right elbow", "Left upper arm",
-                                "Right upper arm"),
-                      "Shoulder" = c("Left shoulder", "Right shoulder"),
-                      "Leg" = c("Left ankle", "Right ankle", "Left knee", "Right knee",
-                                "Left thigh", "Right thigh", "Left calf", "Right calf"),
-                      "Hip" = c("Left hip", "Right hip"),
-                      "Head" = "Head",
-                      "Face" = "Face",
-                      "Neck" = "Neck",
-                      "Back" = c("Low back", "Mid back", "Upper back"),
-                      "Foot" = c("Left foot", "Right foot"),
-                      "Hand" = c("Left hand", "Right hand")
-                      ),
-  
-  ref_bpi_main_pain  = forcats::fct_collapse(joined_data$end_bpi_main_pain,
                                             "Arm" = c("Left forearm", "Right forearm", "Left wrist", "Right wrist",
                                                       "Left elbow", "Right elbow", "Left upper arm",
                                                       "Right upper arm"),
@@ -348,59 +209,52 @@ joined_data<- joined_data %>% dplyr::mutate(
                                             "Back" = c("Low back", "Mid back", "Upper back"),
                                             "Foot" = c("Left foot", "Right foot"),
                                             "Hand" = c("Left hand", "Right hand")
-                                             ))
-```
+  ),
 
-## Drop Variables
+  ref_bpi_main_pain  = forcats::fct_collapse(joined_data$end_bpi_main_pain,
+                                             "Arm" = c("Left forearm", "Right forearm", "Left wrist", "Right wrist",
+                                                       "Left elbow", "Right elbow", "Left upper arm",
+                                                       "Right upper arm"),
+                                             "Shoulder" = c("Left shoulder", "Right shoulder"),
+                                             "Leg" = c("Left ankle", "Right ankle", "Left knee", "Right knee",
+                                                       "Left thigh", "Right thigh", "Left calf", "Right calf"),
+                                             "Hip" = c("Left hip", "Right hip"),
+                                             "Head" = "Head",
+                                             "Face" = "Face",
+                                             "Neck" = "Neck",
+                                             "Back" = c("Low back", "Mid back", "Upper back"),
+                                             "Foot" = c("Left foot", "Right foot"),
+                                             "Hand" = c("Left hand", "Right hand")
+  ))
 
-I now decide which variables to delete, in order to make the dataframe more manageable.  
-
-```{r}
 
 #drop all variables that contain a digit (because I don't need item-level questionnaire data).
 
 item_vars<- stringr::str_subset(names(joined_data), regex("q_\\d+"))
 joined_data<- joined_data %>% select(!!-any_vars(item_vars))
 
-#Drop variables that have only one value 
+#Drop variables that have only one value
 joined_data<- joined_data %>% purrr::keep(~length(unique(.x)) >= 2)
 
 #Drop variables with over 50% of responses missing
-joined_data<- joined_data %>% discard(~mean(is.na(.x)) >= .5) 
+joined_data<- joined_data %>% discard(~mean(is.na(.x)) >= .5)
 
 #Drop miscellaneous variables that I don't kneed
 
-joined_data<- joined_data %>% dplyr::select(-state, -episode_id, -torres_strait_isl, -ref_comp_status, -end_height, -end_weight,-contains("interpreter"), -contains("hours_worked"), -contains("survey_category_id"), 
-                                      -contains("survey_schedule_id"), -contains("key"),
-                                      -contains("retraining"), -contains("opioid_maint"),
-                                      -contains("ref_voluntary"), -contains("count_analg_ex_opi"))
+joined_data<- joined_data %>% dplyr::select(-state, -episode_id, -torres_strait_isl, -ref_comp_status, -end_height, -end_weight,-contains("interpreter"), -contains("hours_worked"), -contains("survey_category_id"),
+                                            -contains("survey_schedule_id"), -contains("key"),
+                                            -contains("retraining"), -contains("opioid_maint"),
+                                            -contains("ref_voluntary"), -contains("count_analg_ex_opi"))
 
-```
-
-## Convert Character Variables To Factors
-
-Finally, I convert all character variables to factors, ensure that missing values have an explicit factor level, and reorder the levels by response frequencies.
-
-```{r}
 
 joined_data<- purrr::modify_if(joined_data, is.character, forcats::fct_explicit_na)
 
 joined_data<- joined_data %>% purrr::modify_if(is.factor, forcats::fct_infreq)
 
-```
+return(joined_data)
 
-The data is now clean and useable!! I'll therefore save it for future use.
-
-```{r}
-
-saveRDS(joined_data, "clean_data.Rds")
-
-```
+}
 
 
 
-<body class = "blue">
-
-
-</body>
 
