@@ -1,0 +1,253 @@
+---
+title: "Supercharged Data Cleaning with R (Part Two - Data Wrangling)"
+author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
+date: '2019-11-23'
+categories:
+  - Data Cleaning
+tags:
+  - Data Cleaning
+output:
+  blogdown::html_page:
+    toc: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#data-import">Data Import</a></li>
+<li><a href="#clean-variable-names">Clean Variable Names</a></li>
+<li><a href="#manage-missing-value-codes">Manage Missing Value Codes</a></li>
+<li><a href="#remove-empty-or-duplicate-rows">Remove Empty or Duplicate Rows</a></li>
+<li><a href="#convert-variable-data-types">Convert Variable Data Types</a></li>
+<li><a href="#recode-categorical-variables">Recode Categorical Variables</a></li>
+<li><a href="#drop-variables">Drop Variables</a></li>
+</ul>
+</div>
+
+<style>
+body.blue { background-color:#2b3f60;}
+</style>
+<pre class="r"><code>library(fs)
+library(readr)
+library(here)
+library(purrr)
+library(janitor)
+library(dplyr)
+library(stringr)
+library(naniar)
+library(plotly)
+library(stringr)
+library(forcats)</code></pre>
+<p>In my previous article, I wrote a function for importing three messy csv files and merged them into a single, clean(ish) dataframe.</p>
+<p>Let’s use it to pull in that dataframe.</p>
+<div id="data-import" class="section level2">
+<h2>Data Import</h2>
+<pre class="r"><code>#Source the function, which is stored in my working directory 
+
+source(&quot;import_data.R&quot;)
+
+joined_data&lt;- import_data()
+
+#Check out the first few rows of data
+
+head(joined_data)</code></pre>
+<pre><code>## # A tibble: 6 x 273
+##   Aboriginal CancerPain CMAnaemia CMBloodPressure CMCancer CMDepression
+##   &lt;chr&gt;      &lt;chr&gt;      &lt;chr&gt;     &lt;chr&gt;           &lt;chr&gt;    &lt;chr&gt;       
+## 1 0          0          0         0               0        1           
+## 2 0          0          0         0               0        1           
+## 3 0          0          0         0               0        1           
+## 4 &lt;NA&gt;       0          &lt;NA&gt;      &lt;NA&gt;            &lt;NA&gt;     &lt;NA&gt;        
+## 5 0          0          0         0               0        1           
+## 6 0          0          0         0               0        0           
+## # … with 267 more variables: CMDiabetes &lt;chr&gt;, CMHeart &lt;chr&gt;,
+## #   CMKidney &lt;chr&gt;, CMLung &lt;chr&gt;, CMOsteoarthritis &lt;chr&gt;, CMOther &lt;chr&gt;,
+## #   CMRheumatoid &lt;chr&gt;, CMStroke &lt;chr&gt;, CMUlcer &lt;chr&gt;,
+## #   CommunicationAssist &lt;chr&gt;, ComorbiditiesOther &lt;chr&gt;,
+## #   CompensationCase &lt;chr&gt;, CompensationCaseType &lt;chr&gt;,
+## #   CompensationOtherDetail &lt;chr&gt;, CountryOfBirth &lt;chr&gt;,
+## #   CountryOfBirthOther &lt;chr&gt;, DOB &lt;chr&gt;, EEnd_BPIActivity &lt;chr&gt;,
+## #   EEnd_BPIAverage &lt;chr&gt;, EEnd_BPIEnjoyment &lt;chr&gt;, EEnd_BPILeast &lt;chr&gt;,
+## #   EEnd_BPIMainPain &lt;chr&gt;, EEnd_BPIMood &lt;chr&gt;, EEnd_BPINow &lt;chr&gt;,
+## #   EEnd_BPIPainInterference &lt;chr&gt;, EEnd_BPIPainInterferenceEmpty &lt;chr&gt;,
+## #   EEnd_BPIPainSeverity &lt;chr&gt;, EEnd_BPIPainSeverityEmpty &lt;chr&gt;,
+## #   EEnd_BPIRelations &lt;chr&gt;, EEnd_BPISleep &lt;chr&gt;, EEnd_BPIWalking &lt;chr&gt;,
+## #   EEnd_BPIWork &lt;chr&gt;, EEnd_BPIWorst &lt;chr&gt;, EEnd_CompDate &lt;chr&gt;,
+## #   EEnd_CompStatus &lt;chr&gt;, EEnd_CountAnalgAll &lt;chr&gt;,
+## #   EEnd_CountAnalgExOpi &lt;chr&gt;, EEnd_DailyMorphine &lt;chr&gt;,
+## #   EEnd_DASSAnxiety &lt;chr&gt;, EEnd_DASSAnxietyEmpty &lt;chr&gt;,
+## #   EEnd_DASSDepression &lt;chr&gt;, EEnd_DASSDepressionEmpty &lt;chr&gt;,
+## #   EEnd_DASSQ1 &lt;chr&gt;, EEnd_DASSQ10 &lt;chr&gt;, EEnd_DASSQ11 &lt;chr&gt;,
+## #   EEnd_DASSQ12 &lt;chr&gt;, EEnd_DASSQ13 &lt;chr&gt;, EEnd_DASSQ14 &lt;chr&gt;,
+## #   EEnd_DASSQ15 &lt;chr&gt;, EEnd_DASSQ16 &lt;chr&gt;, EEnd_DASSQ17 &lt;chr&gt;,
+## #   EEnd_DASSQ18 &lt;chr&gt;, EEnd_DASSQ19 &lt;chr&gt;, EEnd_DASSQ2 &lt;chr&gt;,
+## #   EEnd_DASSQ20 &lt;chr&gt;, EEnd_DASSQ21 &lt;chr&gt;, EEnd_DASSQ3 &lt;chr&gt;,
+## #   EEnd_DASSQ4 &lt;chr&gt;, EEnd_DASSQ5 &lt;chr&gt;, EEnd_DASSQ6 &lt;chr&gt;,
+## #   EEnd_DASSQ7 &lt;chr&gt;, EEnd_DASSQ8 &lt;chr&gt;, EEnd_DASSQ9 &lt;chr&gt;,
+## #   EEnd_DASSStress &lt;chr&gt;, EEnd_DASSStressEmpty &lt;chr&gt;,
+## #   EEnd_DASSTotal &lt;chr&gt;, EEnd_DASSTotalEmpty &lt;chr&gt;, EEnd_EFullTime &lt;chr&gt;,
+## #   EEnd_EHomeDuties &lt;chr&gt;, EEnd_ELeavePain &lt;chr&gt;,
+## #   EEnd_ELimitedHours &lt;chr&gt;, EEnd_EPartTime &lt;chr&gt;, EEnd_ERetired &lt;chr&gt;,
+## #   EEnd_ERetraining &lt;chr&gt;, EEnd_EStudy &lt;chr&gt;,
+## #   EEnd_EUnemployedNotPain &lt;chr&gt;, EEnd_EUnemployedPain &lt;chr&gt;,
+## #   EEnd_EVoluntary &lt;chr&gt;, EEnd_GenDate &lt;chr&gt;, EEnd_Height &lt;chr&gt;,
+## #   EEnd_HoursWorked &lt;chr&gt;, EEnd_HSUAlliedHealth &lt;chr&gt;,
+## #   EEnd_HSUDiagnosticTests &lt;chr&gt;, EEnd_HSUED &lt;chr&gt;, EEnd_HSUGP &lt;chr&gt;,
+## #   EEnd_HSUHospital &lt;chr&gt;, EEnd_HSUSpecialist &lt;chr&gt;,
+## #   EEnd_OpioidFreq &lt;chr&gt;, EEnd_OpioidMaint &lt;chr&gt;,
+## #   EEnd_PainDescription &lt;chr&gt;, EEnd_PCSHelplessness &lt;chr&gt;,
+## #   EEnd_PCSHelplessnessEmpty &lt;chr&gt;, EEnd_PCSMagnification &lt;chr&gt;,
+## #   EEnd_PCSMagnificationEmpty &lt;chr&gt;, EEnd_PCSQ1 &lt;chr&gt;, EEnd_PCSQ10 &lt;chr&gt;,
+## #   EEnd_PCSQ11 &lt;chr&gt;, EEnd_PCSQ12 &lt;chr&gt;, EEnd_PCSQ13 &lt;chr&gt;,
+## #   EEnd_PCSQ2 &lt;chr&gt;, …</code></pre>
+</div>
+<div id="clean-variable-names" class="section level2">
+<h2>Clean Variable Names</h2>
+<p>It is now time to wrangle my data into a useable form.</p>
+<p>First — I need to clean up my variable names. They are a mess of inconsistent upper and lower casing and have letters in strange places. For example, <code>EEnd_BPIPainInterference</code>.</p>
+<p>The <code>make_clean_names()</code> function from <code>janitor</code> will fix the majority of problems with variable names</p>
+<pre class="r"><code>names(joined_data)&lt;- janitor::make_clean_names(names(joined_data))
+
+#Take a look
+dplyr::select(joined_data, contains(&quot;interference&quot;))</code></pre>
+<pre><code>## # A tibble: 275 x 4
+##    e_end_bpi_pain_in… e_end_bpi_pain_in… ref_bpi_pain_in… ref_bpi_pain_int…
+##    &lt;chr&gt;              &lt;chr&gt;              &lt;chr&gt;            &lt;chr&gt;            
+##  1 6.5714             0                  8                0                
+##  2 5                  0                  6.7143           0                
+##  3 3.7143             0                  5.5714           0                
+##  4 5.4286             0                  4                0                
+##  5 9.8571             0                  7.8571           0                
+##  6 6.5714             0                  5.4286           0                
+##  7 3.2857             0                  7.4286           0                
+##  8 9.2857             0                  8.5              1                
+##  9 8.2857             0                  7.5714           0                
+## 10 5                  0                  6.8571           0                
+## # … with 265 more rows</code></pre>
+<p>You’ll see that variable names are now all lower case, and spearated with underscores.</p>
+<p>Now I want to get rid of the strange <code>e_</code> that preceeds the time 2 variables (e.g. <code>e_end_bpi_pain_interference</code>). I also want to put an underscore between any words and digits. Regex simplifies both of these tasks.</p>
+<pre class="r"><code>#Fix the e issue
+names(joined_data)&lt;- stringr::str_replace_all(names(joined_data), &quot;^e_&quot;, &quot;&quot;)
+names(joined_data)&lt;- stringr::str_replace_all(names(joined_data), &quot;_e_&quot;, &quot;_&quot;)
+
+#Fix the digit-word issue
+
+names(joined_data)&lt;- stringr::str_replace_all(names(joined_data), &quot;q(?=\\d+)&quot;, &quot;q_&quot;)</code></pre>
+</div>
+<div id="manage-missing-value-codes" class="section level2">
+<h2>Manage Missing Value Codes</h2>
+<p>The next task is to make sure that missing data has been coded consistently. From my knowledge of the data, I am aware that missing responses can be indicated by <code>-2</code>, <code>-5</code>, <code>-4</code> and <code>99</code>, depending on the variable. But missing data might appear in other ways too.</p>
+<p>The <code>Naniar</code> package has a pre-made <code>common_na_strings</code> object (a character vector), which lists many commonly used conventions that are commonly used to denote missingness (e.g. “n/a”, “N/A”, “missing”). I add the values above to this object and then explicitly encode all missing responses in the dataframe as <code>NA</code>.</p>
+<pre class="r"><code>na_strings&lt;- c(naniar::common_na_strings, &quot;-2&quot;, &quot;-5&quot;, &quot;-4&quot;, &quot;-99&quot;)
+
+joined_data&lt;- joined_data %&gt;% naniar::replace_with_na_all(condition = ~.x %in% na_strings)</code></pre>
+</div>
+<div id="remove-empty-or-duplicate-rows" class="section level2">
+<h2>Remove Empty or Duplicate Rows</h2>
+<p>I then want to remove any rows in the dataframe that are completely empty, and to remove rows that have the same <code>patient_id</code>, since this indicates row duplication.</p>
+<pre class="r"><code>joined_data&lt;- janitor::remove_empty(joined_data, which = c(&quot;rows&quot;, &quot;cols&quot;))
+
+joined_data&lt;- joined_data %&gt;% dplyr::distinct(patient_id, .keep_all = TRUE)</code></pre>
+</div>
+<div id="convert-variable-data-types" class="section level2">
+<h2>Convert Variable Data Types</h2>
+<p>Next, I ensure that quantitative variables have a numeric data type. The easiest way to accomplish this is to first store the names of quantitative variables in a character vector. I then use this vector to transform the variables of interest.</p>
+<pre class="r"><code>numeric_vars&lt;- stringr::str_subset(names(joined_data), 
+                        regex(&quot;pcs|pseq|dass|weight|height|tests|hours_worked|morphine|bpi_|hsu|allied_health&quot;))
+
+joined_data&lt;- joined_data %&gt;% mutate_at(vars(numeric_vars), as.numeric)</code></pre>
+<p>I follow a similar process to specify variables with a date data type.</p>
+<pre class="r"><code>date_vars&lt;- stringr::str_subset(names(joined_data), regex(&quot;date|dob&quot;))
+
+joined_data&lt;- joined_data %&gt;% mutate_at(vars(date_vars), lubridate::dmy)</code></pre>
+<p>At the moment, there are several character variables that have only two possible values — 0 or 1. It would be best to convert their data type to numeric, so that I can include them in modelling analyses later on (e.g. regression).</p>
+<pre class="r"><code>joined_data&lt;- joined_data %&gt;% dplyr::mutate_if(~any(c(0, 1, 2, NA) %in% .x) &amp;&amp; length(unique(as.numeric(.x))) &lt;= 3, as.numeric)</code></pre>
+</div>
+<div id="recode-categorical-variables" class="section level2">
+<h2>Recode Categorical Variables</h2>
+<p>Another task is to convert the codes of some character variables into meaningful categories. Because this step is lengthy, I don’t include all the output. A few examples of the recoding process should suffice.</p>
+<pre class="r"><code>joined_data$pain_source&lt;- dplyr::recode(joined_data$pain_source,
+                                        `1` = &quot;Injury at home&quot;,
+                                        `2` = &quot;Injury at work/school&quot;,
+                                        `3` = &quot;Injury in another setting&quot;,
+                                        `4` = &quot;After surgery&quot;,
+                                        `5` = &quot;Motor vehicle crash&quot;,
+                                        `6` = &quot;Cancer&quot;,
+                                        `7` = &quot;Medical condition other than cancer&quot;,
+                                        `8` = &quot;No obvious cause&quot;,
+                                        `99` = &quot;Other cause&quot;,
+                                        .default = NA_character_
+                                        )
+
+
+joined_data$pain_duration&lt;- dplyr::recode(joined_data$pain_duration,
+                                          `1` = &quot;Less than 3 months&quot;,
+                                          `2` = &quot;3-12 Months&quot;,
+                                          `3` = &quot;12 months-2 years&quot;,
+                                          `4` = &quot;2-5 years&quot;,
+                                          `5` = &quot;More than 5 years&quot;,
+                                          .default = NA_character_
+                                          )</code></pre>
+<p>Unfortunately, the recoding process has led to a large number of possible categories for some character variables. Do I really need to distinguish whether a person’s injury occured to their left knee or right knee? Surely a category like <code>leg</code> would be better for any analyses.</p>
+<p>I use <code>fct_collapse()</code> from the <code>forcats</code> package to manually agglomerate certain response categories.</p>
+<pre class="r"><code>joined_data&lt;- joined_data %&gt;% dplyr::mutate(
+  
+  end_bpi_main_pain = forcats::fct_collapse(joined_data$end_bpi_main_pain,
+                      &quot;Arm&quot; = c(&quot;Left forearm&quot;, &quot;Right forearm&quot;, &quot;Left wrist&quot;, &quot;Right wrist&quot;,
+                                &quot;Left elbow&quot;, &quot;Right elbow&quot;, &quot;Left upper arm&quot;,
+                                &quot;Right upper arm&quot;),
+                      &quot;Shoulder&quot; = c(&quot;Left shoulder&quot;, &quot;Right shoulder&quot;),
+                      &quot;Leg&quot; = c(&quot;Left ankle&quot;, &quot;Right ankle&quot;, &quot;Left knee&quot;, &quot;Right knee&quot;,
+                                &quot;Left thigh&quot;, &quot;Right thigh&quot;, &quot;Left calf&quot;, &quot;Right calf&quot;),
+                      &quot;Hip&quot; = c(&quot;Left hip&quot;, &quot;Right hip&quot;),
+                      &quot;Head&quot; = &quot;Head&quot;,
+                      &quot;Face&quot; = &quot;Face&quot;,
+                      &quot;Neck&quot; = &quot;Neck&quot;,
+                      &quot;Back&quot; = c(&quot;Low back&quot;, &quot;Mid back&quot;, &quot;Upper back&quot;),
+                      &quot;Foot&quot; = c(&quot;Left foot&quot;, &quot;Right foot&quot;),
+                      &quot;Hand&quot; = c(&quot;Left hand&quot;, &quot;Right hand&quot;)
+                      ),
+  
+  ref_bpi_main_pain  = forcats::fct_collapse(joined_data$end_bpi_main_pain,
+                                            &quot;Arm&quot; = c(&quot;Left forearm&quot;, &quot;Right forearm&quot;, &quot;Left wrist&quot;, &quot;Right wrist&quot;,
+                                                      &quot;Left elbow&quot;, &quot;Right elbow&quot;, &quot;Left upper arm&quot;,
+                                                      &quot;Right upper arm&quot;),
+                                            &quot;Shoulder&quot; = c(&quot;Left shoulder&quot;, &quot;Right shoulder&quot;),
+                                            &quot;Leg&quot; = c(&quot;Left ankle&quot;, &quot;Right ankle&quot;, &quot;Left knee&quot;, &quot;Right knee&quot;,
+                                                      &quot;Left thigh&quot;, &quot;Right thigh&quot;, &quot;Left calf&quot;, &quot;Right calf&quot;),
+                                            &quot;Hip&quot; = c(&quot;Left hip&quot;, &quot;Right hip&quot;),
+                                            &quot;Head&quot; = &quot;Head&quot;,
+                                            &quot;Face&quot; = &quot;Face&quot;,
+                                            &quot;Neck&quot; = &quot;Neck&quot;,
+                                            &quot;Back&quot; = c(&quot;Low back&quot;, &quot;Mid back&quot;, &quot;Upper back&quot;),
+                                            &quot;Foot&quot; = c(&quot;Left foot&quot;, &quot;Right foot&quot;),
+                                            &quot;Hand&quot; = c(&quot;Left hand&quot;, &quot;Right hand&quot;)
+                                             ))</code></pre>
+</div>
+<div id="drop-variables" class="section level2">
+<h2>Drop Variables</h2>
+<p>I now decide which variables to delete, in order to make the dataframe more manageable.</p>
+<pre class="r"><code>#drop all variables that contain a digit (because I don&#39;t need item-level questionnaire data).
+
+item_vars&lt;- stringr::str_subset(names(joined_data), regex(&quot;q_\\d+&quot;))
+joined_data&lt;- joined_data %&gt;% select(!!-any_vars(item_vars))
+
+#Drop variables that have only one value 
+joined_data&lt;- joined_data %&gt;% purrr::keep(~length(unique(.x)) &gt;= 2)
+
+#Drop variables with over 50% or responses missing
+joined_data&lt;- joined_data %&gt;% discard(~mean(is.na(.x)) &gt;= .5) 
+
+
+joined_data&lt;- joined_data %&gt;% dplyr::select(-state, -episode_id, -torres_strait_isl, -ref_comp_status, -end_height, -end_weight,-contains(&quot;interpreter&quot;), -contains(&quot;hours_worked&quot;), -contains(&quot;survey_category_id&quot;), 
+                                      -contains(&quot;survey_schedule_id&quot;), -contains(&quot;key&quot;),
+                                      -contains(&quot;retraining&quot;), -contains(&quot;opioid_maint&quot;),
+                                      -contains(&quot;ref_voluntary&quot;), -contains(&quot;count_analg_ex_opi&quot;))</code></pre>
+<p>#Convert Character Variables To Factors</p>
+<p>Finally, I convert all character variables to factors, ensure that missing values have an explicit factor level, and reorder the levels by response frequencies.</p>
+<pre class="r"><code>joined_data&lt;- purrr::modify_if(joined_data, is.character, forcats::fct_explicit_na)
+
+joined_data&lt;- joined_data %&gt;% purrr::modify_if(is.factor, forcats::fct_infreq)</code></pre>
+<body class="blue">
+</body>
+</div>
