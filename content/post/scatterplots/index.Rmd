@@ -217,12 +217,12 @@ show_all_scatterplots_grouped<- function(df, point_identifier,
 
 ```
 
-Look at the relationship between pain intensity and depression, based on the duration of chronic pain
+Look at the relationship between pain intensity and stress, based on the duration of chronic pain
 
 ```{r}
 grouped_scatterplots<- show_all_scatterplots_grouped(vars_of_interest, point_identifier = patient_id, grouping_variable = pain_duration)
 
-grouped_scatterplots[["ref_dass_depressionANDref_bpi_average"]]
+grouped_scatterplots[["ref_dass_stressANDref_bpi_average"]]
 
 ```
 
