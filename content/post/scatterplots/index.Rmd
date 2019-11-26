@@ -39,22 +39,9 @@ library(forcats)
 
 In this article, I programatically generate interactive scatterplots using the persistent pain dataset that I imported and cleaned in earlier posts. 
 
-```{r}
-library(fs)
-library(readr)
-library(here)
-library(purrr)
-library(janitor)
-library(dplyr)
-library(stringr)
-library(naniar)
-library(plotly)
-library(stringr)
-library(forcats)
-
-```
 
 ```{r}
+
 clean_data<- readRDS("clean_data.rds")
 
 ```
@@ -64,7 +51,7 @@ I select variables of interest for exploratory analyses.
 ```{r}
 vars_of_interest<-  dplyr::select(clean_data, patient_id, sex, ref_hsugp, ref_hsu_allied_health, ref_hsu_specialist, ref_hsu_hospital, ref_hsued, ref_unemployed_pain, ref_daily_morphine, ref_bpi_work, ref_hsu_diagnostic_tests, ref_opioid_freq, ref_full_time, ref_bpi_relations, ref_pcs_total, ref_pseq_total, ref_pcs_helplessness, ref_pcs_magnification,
 ref_pcs_rumination, ref_bpi_sleep, ref_bpi_average, ref_weight, ref_dass_depression,
-ref_dass_anxiety, ref_dass_stress)
+ref_dass_anxiety, ref_dass_stress, pain_duration)
 ```
 
 The `ggpairs()` function from **GGally** creates a matrix of scatterplots, based on the columns that are passed to it. But the function is not very helpful if you have a large number of numeric variables and your computer will probably crash in the process.
@@ -75,9 +62,7 @@ Here is the code required to generate such a function. Explanatory comments are 
 
 ```{r}
 
-show_all_scatterplots<- function(df, point_size = 10) {
-  
-  #Select only numeric variables for plotting
+show_all_scatterplots<- function(df) {
   
   df<- dplyr::select_if(df, is.numeric)
   
@@ -86,8 +71,8 @@ show_all_scatterplots<- function(df, point_size = 10) {
   numeric_pairs<- tibble::tibble(x_variable = names(df), 
                                  y_variable = x_variable) %>% expand.grid() 
   
-  #Iterate over the two columns of names and use them 
-  #to select variables from the data
+  #Iterate over the two columns of numeric variable names we've created and use them 
+  #to select variable from mtcars programatically
   
   plot_list<- purrr::map2(numeric_pairs$x_variable, numeric_pairs$y_variable, ~ { 
     
@@ -96,43 +81,39 @@ show_all_scatterplots<- function(df, point_size = 10) {
     
     model<- lm(df[[.y]] ~ df[[.x]], data = df)
     
-    #Create a plotting dataframe with complete cases, to avoid an error caused by unequal column lenghts.
+    #Create the plotly base for the plot. Programmatic mapping in plotly requires us 
+    #to specify variables using square bracket notation, rather than the 
+    #usual x = ~x, y = ~y. I don't know why.
     
     plotting_df<- tibble::tibble(x_plot_var = df[[.x]], y_plot_var = df[[.y]]) %>% dplyr::filter(complete.cases(.)) 
     
     plot_ly(plotting_df, x = ~x_plot_var, y = ~y_plot_var) %>%
-      add_markers(opacity = 0.5, size = point_size, showlegend = FALSE) %>%
+      add_markers(x = ~jitter(x_plot_var), y = ~jitter(y_plot_var), opacity = 0.5, showlegend = FALSE) %>%
       
       #Add the line of best fit to each plot
-      #Add a tooltip dhowing the correlation
       
       add_lines(y = ~fitted(model))  %>% 
       layout(title = paste0(.x, " vs ", .y,":", " 
                             Correlation = ", round(cor(df[[.x]],
-                                                       df[[.y]], use = "complete.obs"), 2)),
+                                                       df[[.y]], use = "pairwise.complete.obs"), 2)),
                                             xaxis = list(title = paste(.x)),
-                                            yaxis = list(title = paste(.y)))
+                                            yaxis = list(title = paste(.y))) %>% config(displayModeBar = F)
   })
-  
-  #Create a naming convention so that plots from the list can be accessed easily.
-  #The convention is variable_one_nameANDvariable_two_name
   
   plot_names<- numeric_pairs %>% tidyr::unite("plot_labels", x_variable:y_variable, sep = "AND", remove = TRUE) %>% dplyr::pull(plot_labels)
   
   plot_list<- plot_list %>% purrr::set_names(plot_names)
   
 }
-
-
 ```
 
-Check the function works by selecting a scatterplot of average pain intensity vs. sleep disturbance (caused by pain)
+Look at the relationship between depression and chronic pain-related relationship problems
 
 ```{r}
 
 scatter_by_var<- show_all_scatterplots(vars_of_interest)
 
-scatter_by_var[["ref_bpi_sleepANDref_bpi_average"]]
+scatter_by_var[["ref_bpi_relationsANDref_dass_depression"]]
 
 ```
 
@@ -141,7 +122,7 @@ Sometimes, we also want to look at subgroups within scatterplots. Doing so is im
 The code for dynamically creating grouped scatterplots is shown below:
 
 ```{r}
-show_all_scatterplots_grouped<- function(df, point_identifier, point_size = NULL, 
+show_all_scatterplots_grouped<- function(df, point_identifier,
                                          grouping_variable) {
   
   group<- enquo(grouping_variable)
@@ -151,6 +132,10 @@ show_all_scatterplots_grouped<- function(df, point_identifier, point_size = NULL
   numeric_pairs<- tibble::tibble(x_variable = names(dplyr::select_if(df, 
                                                                      is.numeric)),
                                  y_variable = x_variable) %>% expand.grid()
+  
+  
+  legend_title <- list(yref='paper',xref="paper",y=1.05,x=1.2, 
+                       text= paste(dplyr::select(df, !!group) %>% names()), showarrow=F)
 
   
   
@@ -211,16 +196,15 @@ show_all_scatterplots_grouped<- function(df, point_identifier, point_size = NULL
                           
             )) %>%
       
-      add_markers(opacity = 0.5, size = point_size, showlegend = TRUE) %>%
+      add_markers(x = ~jitter(plotly_x_var), y = ~jitter(plotly_y_var), opacity = 0.5, showlegend = TRUE) %>%
       
       add_lines(y = ~fitted(model), showlegend = FALSE) %>%
       
-      #Add our title to the legend
       
       layout(title = paste0(.x, " vs ", .y,":", " Correlation = ", 
                             round(cor(merged_df[[paste(.x)]], merged_df[[paste(.y)]], use = "pairwise.complete.obs"), 2)),
              xaxis = list(title = paste(.x)),
-             yaxis = list(title = paste(.y)))
+             yaxis = list(title = paste(.y)), annotations = legend_title) %>% config(displayModeBar = F)
     
   })
   
@@ -230,14 +214,15 @@ show_all_scatterplots_grouped<- function(df, point_identifier, point_size = NULL
   
 }
 
+
 ```
 
-Check the function worked by exploring the relationship between depression and relationship difficulties (caused by pain), based on sex.
+Look at the relationship between pain intensity and depression, based on the duration of chronic pain
 
 ```{r}
-grouped_scatterplot_list<- show_all_scatterplots_grouped(vars_of_interest, point_identifier = patient_id, grouping_variable = sex, point_size = 2)
+grouped_scatterplots<- show_all_scatterplots_grouped(vars_of_interest, point_identifier = patient_id, grouping_variable = pain_duration)
 
-grouped_scatterplot_list[["ref_bpi_relationsANDref_dass_depression"]]
+grouped_scatterplots[["ref_dass_depressionANDref_bpi_average"]]
 
 ```
 
