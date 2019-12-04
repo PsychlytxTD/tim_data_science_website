@@ -1,0 +1,246 @@
+---
+title: "Generating Clinical Cutoffs With R"
+author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
+date: '2019-12-04'
+categories:
+  - Visualisation
+tags:
+  - Visualisation
+output:
+  blogdown::html_page:
+    toc: no
+---
+
+<script src="/rmarkdown-libs/htmlwidgets/htmlwidgets.js"></script>
+<script src="/rmarkdown-libs/plotly-binding/plotly.js"></script>
+<script src="/rmarkdown-libs/typedarray/typedarray.min.js"></script>
+<script src="/rmarkdown-libs/jquery/jquery.min.js"></script>
+<link href="/rmarkdown-libs/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/crosstalk/js/crosstalk.min.js"></script>
+<link href="/rmarkdown-libs/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/plotly-main/plotly-latest.min.js"></script>
+
+
+<style>
+body.blue { background-color:#659dbd;}
+</style>
+<pre class="r"><code>library(fs)
+library(readr)
+library(here)
+library(purrr)
+library(janitor)
+library(dplyr)
+library(stringr)
+library(naniar)
+library(plotly)
+library(stringr)
+library(forcats)
+library(correlationfunnel)
+library(magrittr)</code></pre>
+<p>In this post I use tidyverse data wrangling procedures to develop clinical cutoff criteria for psychological outcome measures. Then I use these criteria to examine the performance of a multidisciplinary pain management program for persistent pain.</p>
+<p>First import the data:</p>
+<pre class="r"><code>clean_data&lt;- readRDS(&quot;clean_data.rds&quot;)</code></pre>
+<p>Next, for each outcome measure generate a function that will calculate change in scores on that measure, and whether or not that change met measure-specific benchmark criteria for a clinically significant improvement. I could have made a complex single function to accomplish this, but I prefer making several smaller ones.</p>
+<p>To evalute program performance, it is critically important to exclude asymptomatic patients from analyses at the beginning. For example, if someone scored a 2 on the DASS-21 outcome measure, that person is asymptomatic for depression. They can’t really “improve” further and so including them in the initial sample would water down the results!</p>
+<pre class="r"><code>calc_sig_change_depression &lt;- function(df) {
+  df &lt;-
+    df %&gt;% dplyr::mutate(
+      change_depression = end_dass_depression - ref_dass_depression,
+      sig_change_depression = dplyr::case_when(
+        is.na(change_depression) |
+          ref_dass_depression &lt; 14 |
+          ref_dass_depression_empty &gt;= 2 |
+          end_dass_depression_empty &gt;= 2 ~ NA_character_,
+        ref_dass_depression &gt;= 14 &amp;
+          end_dass_depression &lt; 14 &amp; abs(change_depression) &gt; 5 ~ &quot;yes&quot;,
+        ref_dass_depression &gt;= 21 &amp;
+          end_dass_depression &lt; 21 &amp; abs(change_depression) &gt; 5 ~ &quot;yes&quot;,
+        ref_dass_depression &gt;= 28 &amp;
+          end_dass_depression &lt; 28 &amp; abs(change_depression) &gt; 5 ~ &quot;yes&quot;,
+        TRUE ~ &quot;no&quot;
+      )
+    )
+}
+
+
+calc_sig_change_anxiety &lt;- function(df) {
+  df &lt;-
+    df %&gt;% dplyr::mutate(
+      change_anxiety = end_dass_anxiety - ref_dass_anxiety,
+      sig_change_anxiety = dplyr::case_when(
+        is.na(change_anxiety) |
+          ref_dass_anxiety &lt; 10 |
+          ref_dass_anxiety_empty &gt;= 2 |
+          end_dass_anxiety_empty &gt;= 2  ~ NA_character_,
+        ref_dass_anxiety &gt;= 10 &amp;
+          end_dass_anxiety &lt; 10 &amp; abs(change_anxiety) &gt; 5 ~ &quot;yes&quot;,
+        ref_dass_anxiety &gt;= 15 &amp;
+          end_dass_anxiety &lt; 15 &amp; abs(change_anxiety) &gt; 5 ~ &quot;yes&quot;,
+        ref_dass_anxiety &gt;= 20 &amp;
+          end_dass_anxiety &lt; 20 &amp; abs(change_anxiety) &gt; 5 ~ &quot;yes&quot;,
+        TRUE ~ &quot;no&quot;
+      )
+    )
+}
+
+
+
+
+calc_sig_change_stress &lt;- function(df) {
+  df &lt;-
+    df %&gt;% dplyr::mutate(
+      change_stress = end_dass_stress - ref_dass_stress,
+      sig_change_stress = dplyr::case_when(
+        is.na(change_stress) |
+          ref_dass_stress &lt; 19 |
+          ref_dass_stress_empty &gt;= 2 |
+          end_dass_stress_empty &gt;= 2  ~ NA_character_,
+        ref_dass_stress &gt;= 19 &amp;
+          end_dass_stress &lt; 19 &amp; abs(change_stress) &gt; 5 ~ &quot;yes&quot;,
+        ref_dass_stress &gt;= 26 &amp;
+          end_dass_stress &lt; 26 &amp; abs(change_stress) &gt; 5 ~ &quot;yes&quot;,
+        ref_dass_stress &gt;= 34 &amp;
+          end_dass_stress &lt; 34 &amp; abs(change_stress) &gt; 5 ~ &quot;yes&quot;,
+        TRUE ~ &quot;no&quot;
+      )
+    )
+  
+}
+
+
+
+calc_sig_change_catastrophising &lt;- function(df) {
+  df &lt;-
+    df %&gt;% dplyr::mutate(
+      change_catastrophising = end_pcs_total - ref_pcs_total,
+      sig_change_catastrophising = dplyr::case_when(
+        is.na(change_catastrophising) |
+          ref_pcs_total &lt; 20 |
+          ref_pcs_total_empty &gt;= 2 |
+          end_pcs_total_empty &gt;= 2 ~ NA_character_,
+        ref_pcs_total &gt;= 20 &amp;
+          end_pcs_total &lt; 20 &amp; abs(change_catastrophising) &gt; 5 ~ &quot;yes&quot;,
+        ref_pcs_total &gt;= 30 &amp;
+          end_pcs_total &lt; 30 &amp; abs(change_catastrophising) &gt; 5 ~ &quot;yes&quot;,
+        TRUE ~ &quot;no&quot;
+      )
+    )
+  
+}
+
+
+calc_sig_change_self_efficacy &lt;- function(df) {
+  df &lt;- df %&gt;% dplyr::mutate(
+    change_self_efficacy = end_pseq_total - ref_pseq_total,
+    sig_change_self_efficacy = dplyr::case_when(
+      is.na(change_self_efficacy) |
+        ref_pseq_total &gt; 30 |
+        ref_pseq_empty &gt;= 2 | end_pseq_empty &gt;= 2  ~ NA_character_,
+      ref_pseq_total &lt;= 30 &amp;
+        end_pseq_total &gt;= 31 &amp; abs(change_self_efficacy) &gt;= 7 ~ &quot;yes&quot;,
+      ref_pseq_total &lt; 20 &amp;
+        end_pseq_total &gt;= 20 &amp; abs(change_self_efficacy) &gt;= 7 ~ &quot;yes&quot;,
+      TRUE ~ &quot;no&quot;
+    )
+  )
+}
+
+
+calc_sig_change_pain_interference &lt;- function(df) {
+  df &lt;- df %&gt;% dplyr::mutate(
+    change_pain_interference = end_bpi_pain_interference - ref_bpi_pain_interference,
+    sig_change_pain_interference = dplyr::case_when(
+      is.na(change_pain_interference) |
+        ref_bpi_pain_interference &lt; 5  ~ NA_character_,
+      (
+        abs(change_pain_interference) &gt;= (ref_bpi_pain_interference * 0.3)
+      ) &amp; (end_bpi_pain_severity &lt; ref_bpi_pain_severity) ~ &quot;yes&quot;,
+      TRUE ~ &quot;no&quot;
+    )
+  )
+}
+
+
+
+calc_sig_change_pain_severity &lt;- function(df) {
+  df &lt;- df %&gt;% dplyr::mutate(
+    change_pain_severity = end_bpi_pain_severity - ref_bpi_pain_severity,
+    sig_change_pain_severity = dplyr::case_when(
+      is.na(change_pain_severity) |
+        ref_bpi_pain_severity &lt; 5  ~ NA_character_,
+      (abs(change_pain_severity) &gt;= (ref_bpi_pain_severity * 0.3)) &amp;
+        (end_bpi_pain_severity &lt; ref_bpi_pain_severity) ~ &quot;yes&quot;,
+      TRUE ~ &quot;no&quot;
+    )
+  )
+}</code></pre>
+<p>Now, apply each function to the dataframe to generate the required change and benchmark status variables.</p>
+<pre class="r"><code>clean_data&lt;- purrr::map_dfr(list(clean_data), ~{
+  
+  calc_sig_change_depression(.x) %&gt;% 
+  calc_sig_change_anxiety() %&gt;% 
+  calc_sig_change_stress() %&gt;% 
+  calc_sig_change_catastrophising() %&gt;% 
+  calc_sig_change_self_efficacy() %&gt;% 
+  calc_sig_change_pain_interference() %&gt;% 
+  calc_sig_change_pain_severity()
+  
+})</code></pre>
+<p>Gather the data, calculate program outcomes and thereby wrangle the data for plotting:</p>
+<pre class="r"><code>plotting_data&lt;- clean_data %&gt;% dplyr::select( contains(&quot;sig_change&quot;))
+
+plotting_data_gathered&lt;- plotting_data %&gt;% tidyr::gather(key = &quot;outcome&quot;, value = &quot;sig_change_status&quot;)
+
+plotting_data_summarised&lt;- plotting_data_gathered %&gt;% dplyr::group_by(outcome, sig_change_status) %&gt;% dplyr::filter(!is.na(sig_change_status)) %&gt;% 
+  dplyr::summarise(n_cases = n()) %&gt;% dplyr::ungroup() %&gt;% dplyr::group_by(outcome) %&gt;% 
+  mutate(all_cases = round(sum(n_cases))) %&gt;% dplyr::ungroup() %&gt;% dplyr::mutate(pct_cases = round((n_cases / all_cases) * 100), outcome = stringr::str_replace(outcome, &quot;sig_change_&quot;, &quot;&quot;), sig_change_status = fct_recode(sig_change_status, &quot;Benchmark Improvement&quot; = &quot;yes&quot;, &quot;No Benchmark Improvement&quot; = &quot;no&quot;))
+ 
+#It&#39;s tricky to arrange the bars when you have a stacked bar plot.The lines of code below allow us to do so
+
+reordered_levels&lt;- filter(plotting_data_summarised, sig_change_status == &quot;Benchmark Improvement&quot;) %&gt;% arrange(desc(pct_cases)) %&gt;% dplyr::pull(outcome)
+
+
+plotting_data_summarised&lt;- plotting_data_summarised %&gt;% dplyr::mutate(
+  outcome = forcats::fct_relevel(outcome, reordered_levels)
+   )
+
+#Have a look
+
+plotting_data_summarised</code></pre>
+<pre><code>## # A tibble: 14 x 5
+##    outcome           sig_change_status        n_cases all_cases pct_cases
+##    &lt;fct&gt;             &lt;fct&gt;                      &lt;int&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+##  1 anxiety           No Benchmark Improvement      74       125        59
+##  2 anxiety           Benchmark Improvement         51       125        41
+##  3 catastrophising   No Benchmark Improvement      62       148        42
+##  4 catastrophising   Benchmark Improvement         86       148        58
+##  5 depression        No Benchmark Improvement      70       146        48
+##  6 depression        Benchmark Improvement         76       146        52
+##  7 pain_interference No Benchmark Improvement     137       213        64
+##  8 pain_interference Benchmark Improvement         76       213        36
+##  9 pain_severity     No Benchmark Improvement     136       178        76
+## 10 pain_severity     Benchmark Improvement         42       178        24
+## 11 self_efficacy     No Benchmark Improvement      91       192        47
+## 12 self_efficacy     Benchmark Improvement        101       192        53
+## 13 stress            No Benchmark Improvement      65       134        49
+## 14 stress            Benchmark Improvement         69       134        51</code></pre>
+<p>Finally, plot the outcomes:</p>
+<pre class="r"><code>p&lt;- ggplot(plotting_data_summarised, aes(x = outcome, y = pct_cases, fill = sig_change_status, 
+                                     text = paste0(&quot;Number of Patients Showing &quot;, sig_change_status, &quot;: &quot;, n_cases,  &quot;&lt;br&gt;&quot;,
+                                                  &quot;Total Sample Size (Symptomatic Patients): &quot;, all_cases))) + 
+  geom_col() + geom_text(aes(label = paste0(pct_cases, &quot;%&quot;)), position = position_stack(vjust = 0.5), size = 4) + 
+  theme(panel.grid.minor.y = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_blank()
+  ) + ylab(&quot;Percentage of Symptomatic Patients&quot;) + xlab(&quot;Outcome&quot;) +
+  labs(fill = &quot;Achieved Benchmark Improvement&quot;)  + 
+  theme(legend.position = &quot;bottom&quot;, legend.title = element_blank()) + coord_flip()
+
+
+ggplotly(p, tooltip = &quot;text&quot;) %&gt;% layout(legend = list(orientation = &quot;h&quot;, x = 0.4, y = -0.2))</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:480px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"data":[{"orientation":"h","width":[0.9,0.9,0.9,0.9,0.9,0.9,0.9],"base":[58,53,52,51,41,36,24],"x":[42,47,48,49,59,64,76],"y":[1,2,3,4,5,6,7],"text":["Number of Patients Showing No Benchmark Improvement: 62<br>Total Sample Size (Symptomatic Patients): 148","Number of Patients Showing No Benchmark Improvement: 91<br>Total Sample Size (Symptomatic Patients): 192","Number of Patients Showing No Benchmark Improvement: 70<br>Total Sample Size (Symptomatic Patients): 146","Number of Patients Showing No Benchmark Improvement: 65<br>Total Sample Size (Symptomatic Patients): 134","Number of Patients Showing No Benchmark Improvement: 74<br>Total Sample Size (Symptomatic Patients): 125","Number of Patients Showing No Benchmark Improvement: 137<br>Total Sample Size (Symptomatic Patients): 213","Number of Patients Showing No Benchmark Improvement: 136<br>Total Sample Size (Symptomatic Patients): 178"],"type":"bar","marker":{"autocolorscale":false,"color":"rgba(248,118,109,1)","line":{"width":1.88976377952756,"color":"transparent"}},"name":"No Benchmark Improvement","legendgroup":"No Benchmark Improvement","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"orientation":"h","width":[0.9,0.9,0.9,0.9,0.9,0.9,0.9],"base":[0,0,0,0,0,0,0],"x":[58,53,52,51,41,36,24],"y":[1,2,3,4,5,6,7],"text":["Number of Patients Showing Benchmark Improvement: 86<br>Total Sample Size (Symptomatic Patients): 148","Number of Patients Showing Benchmark Improvement: 101<br>Total Sample Size (Symptomatic Patients): 192","Number of Patients Showing Benchmark Improvement: 76<br>Total Sample Size (Symptomatic Patients): 146","Number of Patients Showing Benchmark Improvement: 69<br>Total Sample Size (Symptomatic Patients): 134","Number of Patients Showing Benchmark Improvement: 51<br>Total Sample Size (Symptomatic Patients): 125","Number of Patients Showing Benchmark Improvement: 76<br>Total Sample Size (Symptomatic Patients): 213","Number of Patients Showing Benchmark Improvement: 42<br>Total Sample Size (Symptomatic Patients): 178"],"type":"bar","marker":{"autocolorscale":false,"color":"rgba(0,191,196,1)","line":{"width":1.88976377952756,"color":"transparent"}},"name":"Benchmark Improvement","legendgroup":"Benchmark Improvement","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[79,76.5,76,75.5,70.5,68,62],"y":[1,2,3,4,5,6,7],"text":["42%","47%","48%","49%","59%","64%","76%"],"hovertext":["Number of Patients Showing No Benchmark Improvement: 62<br>Total Sample Size (Symptomatic Patients): 148","Number of Patients Showing No Benchmark Improvement: 91<br>Total Sample Size (Symptomatic Patients): 192","Number of Patients Showing No Benchmark Improvement: 70<br>Total Sample Size (Symptomatic Patients): 146","Number of Patients Showing No Benchmark Improvement: 65<br>Total Sample Size (Symptomatic Patients): 134","Number of Patients Showing No Benchmark Improvement: 74<br>Total Sample Size (Symptomatic Patients): 125","Number of Patients Showing No Benchmark Improvement: 137<br>Total Sample Size (Symptomatic Patients): 213","Number of Patients Showing No Benchmark Improvement: 136<br>Total Sample Size (Symptomatic Patients): 178"],"textfont":{"size":15.1181102362205,"color":"rgba(0,0,0,1)"},"type":"scatter","mode":"text","hoveron":"points","name":"No Benchmark Improvement","legendgroup":"No Benchmark Improvement","showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[29,26.5,26,25.5,20.5,18,12],"y":[1,2,3,4,5,6,7],"text":["58%","53%","52%","51%","41%","36%","24%"],"hovertext":["Number of Patients Showing Benchmark Improvement: 86<br>Total Sample Size (Symptomatic Patients): 148","Number of Patients Showing Benchmark Improvement: 101<br>Total Sample Size (Symptomatic Patients): 192","Number of Patients Showing Benchmark Improvement: 76<br>Total Sample Size (Symptomatic Patients): 146","Number of Patients Showing Benchmark Improvement: 69<br>Total Sample Size (Symptomatic Patients): 134","Number of Patients Showing Benchmark Improvement: 51<br>Total Sample Size (Symptomatic Patients): 125","Number of Patients Showing Benchmark Improvement: 76<br>Total Sample Size (Symptomatic Patients): 213","Number of Patients Showing Benchmark Improvement: 42<br>Total Sample Size (Symptomatic Patients): 178"],"textfont":{"size":15.1181102362205,"color":"rgba(0,0,0,1)"},"type":"scatter","mode":"text","hoveron":"points","name":"Benchmark Improvement","legendgroup":"Benchmark Improvement","showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":26.2283105022831,"r":7.30593607305936,"b":40.1826484018265,"l":124.931506849315},"paper_bgcolor":"rgba(255,255,255,1)","font":{"color":"rgba(0,0,0,1)","family":"","size":14.6118721461187},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[-5,105],"tickmode":"array","ticktext":["0","25","50","75","100"],"tickvals":[0,25,50,75,100],"categoryorder":"array","categoryarray":["0","25","50","75","100"],"nticks":null,"ticks":"outside","tickcolor":"rgba(51,51,51,1)","ticklen":3.65296803652968,"tickwidth":0.66417600664176,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.689497716895},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":false,"gridcolor":null,"gridwidth":0,"zeroline":false,"anchor":"y","title":{"text":"Percentage of Symptomatic Patients","font":{"color":"rgba(0,0,0,1)","family":"","size":14.6118721461187}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.4,7.6],"tickmode":"array","ticktext":["catastrophising","self_efficacy","depression","stress","anxiety","pain_interference","pain_severity"],"tickvals":[1,2,3,4,5,6,7],"categoryorder":"array","categoryarray":["catastrophising","self_efficacy","depression","stress","anxiety","pain_interference","pain_severity"],"nticks":null,"ticks":"outside","tickcolor":"rgba(51,51,51,1)","ticklen":3.65296803652968,"tickwidth":0.66417600664176,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.689497716895},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":false,"gridcolor":null,"gridwidth":0,"zeroline":false,"anchor":"x","title":{"text":"Outcome","font":{"color":"rgba(0,0,0,1)","family":"","size":14.6118721461187}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":true,"legend":{"bgcolor":"rgba(255,255,255,1)","bordercolor":"transparent","borderwidth":1.88976377952756,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.689497716895},"y":-0.2,"orientation":"h","x":0.4},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","showSendToCloud":false},"source":"A","attrs":{"36f34961988":{"x":{},"y":{},"fill":{},"text":{},"type":"bar"},"36f6a664ab0":{"label":{},"x":{},"y":{},"fill":{},"text":{}}},"cur_data":"36f34961988","visdat":{"36f34961988":["function (y) ","x"],"36f6a664ab0":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+<p>Don’t forget to hover over the plot to access info contained in the tooltip!</p>
+<body class="blue">
+</body>

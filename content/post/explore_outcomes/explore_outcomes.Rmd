@@ -1,0 +1,262 @@
+---
+title: "Generating Clinical Cutoffs With R"
+author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
+date: '2019-12-04'
+categories:
+  - Visualisation
+tags:
+  - Visualisation
+output:
+  blogdown::html_page:
+    toc: no
+---
+<style>
+body.blue { background-color:#659dbd;}
+</style>
+
+
+
+```{r, echo = FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE, out.width = '100%')
+
+```
+
+```{r}
+library(fs)
+library(readr)
+library(here)
+library(purrr)
+library(janitor)
+library(dplyr)
+library(stringr)
+library(naniar)
+library(plotly)
+library(stringr)
+library(forcats)
+library(correlationfunnel)
+library(magrittr)
+
+```
+
+In this post I use tidyverse data wrangling procedures to develop clinical cutoff criteria for psychological outcome measures. Then I use these criteria to examine the performance of a multidisciplinary pain management program for persistent pain.
+
+First import the data:
+
+```{r}
+
+clean_data<- readRDS("clean_data.rds")
+
+```
+
+Next, for each outcome measure generate a function that will calculate change in scores on that measure, and whether or not that change met measure-specific benchmark criteria for a clinically significant improvement. I could have made a complex single function to accomplish this, but I prefer making several smaller ones.
+
+To evalute program performance, it is critically important to exclude asymptomatic patients from analyses at the beginning. For example, if someone scored a 2 on the DASS-21 outcome measure, that person is asymptomatic for depression. They can't really "improve" further and so including them in the initial sample would water down the results!
+
+```{r}
+calc_sig_change_depression <- function(df) {
+  df <-
+    df %>% dplyr::mutate(
+      change_depression = end_dass_depression - ref_dass_depression,
+      sig_change_depression = dplyr::case_when(
+        is.na(change_depression) |
+          ref_dass_depression < 14 |
+          ref_dass_depression_empty >= 2 |
+          end_dass_depression_empty >= 2 ~ NA_character_,
+        ref_dass_depression >= 14 &
+          end_dass_depression < 14 & abs(change_depression) > 5 ~ "yes",
+        ref_dass_depression >= 21 &
+          end_dass_depression < 21 & abs(change_depression) > 5 ~ "yes",
+        ref_dass_depression >= 28 &
+          end_dass_depression < 28 & abs(change_depression) > 5 ~ "yes",
+        TRUE ~ "no"
+      )
+    )
+}
+
+
+calc_sig_change_anxiety <- function(df) {
+  df <-
+    df %>% dplyr::mutate(
+      change_anxiety = end_dass_anxiety - ref_dass_anxiety,
+      sig_change_anxiety = dplyr::case_when(
+        is.na(change_anxiety) |
+          ref_dass_anxiety < 10 |
+          ref_dass_anxiety_empty >= 2 |
+          end_dass_anxiety_empty >= 2  ~ NA_character_,
+        ref_dass_anxiety >= 10 &
+          end_dass_anxiety < 10 & abs(change_anxiety) > 5 ~ "yes",
+        ref_dass_anxiety >= 15 &
+          end_dass_anxiety < 15 & abs(change_anxiety) > 5 ~ "yes",
+        ref_dass_anxiety >= 20 &
+          end_dass_anxiety < 20 & abs(change_anxiety) > 5 ~ "yes",
+        TRUE ~ "no"
+      )
+    )
+}
+
+
+
+
+calc_sig_change_stress <- function(df) {
+  df <-
+    df %>% dplyr::mutate(
+      change_stress = end_dass_stress - ref_dass_stress,
+      sig_change_stress = dplyr::case_when(
+        is.na(change_stress) |
+          ref_dass_stress < 19 |
+          ref_dass_stress_empty >= 2 |
+          end_dass_stress_empty >= 2  ~ NA_character_,
+        ref_dass_stress >= 19 &
+          end_dass_stress < 19 & abs(change_stress) > 5 ~ "yes",
+        ref_dass_stress >= 26 &
+          end_dass_stress < 26 & abs(change_stress) > 5 ~ "yes",
+        ref_dass_stress >= 34 &
+          end_dass_stress < 34 & abs(change_stress) > 5 ~ "yes",
+        TRUE ~ "no"
+      )
+    )
+  
+}
+
+
+
+calc_sig_change_catastrophising <- function(df) {
+  df <-
+    df %>% dplyr::mutate(
+      change_catastrophising = end_pcs_total - ref_pcs_total,
+      sig_change_catastrophising = dplyr::case_when(
+        is.na(change_catastrophising) |
+          ref_pcs_total < 20 |
+          ref_pcs_total_empty >= 2 |
+          end_pcs_total_empty >= 2 ~ NA_character_,
+        ref_pcs_total >= 20 &
+          end_pcs_total < 20 & abs(change_catastrophising) > 5 ~ "yes",
+        ref_pcs_total >= 30 &
+          end_pcs_total < 30 & abs(change_catastrophising) > 5 ~ "yes",
+        TRUE ~ "no"
+      )
+    )
+  
+}
+
+
+calc_sig_change_self_efficacy <- function(df) {
+  df <- df %>% dplyr::mutate(
+    change_self_efficacy = end_pseq_total - ref_pseq_total,
+    sig_change_self_efficacy = dplyr::case_when(
+      is.na(change_self_efficacy) |
+        ref_pseq_total > 30 |
+        ref_pseq_empty >= 2 | end_pseq_empty >= 2  ~ NA_character_,
+      ref_pseq_total <= 30 &
+        end_pseq_total >= 31 & abs(change_self_efficacy) >= 7 ~ "yes",
+      ref_pseq_total < 20 &
+        end_pseq_total >= 20 & abs(change_self_efficacy) >= 7 ~ "yes",
+      TRUE ~ "no"
+    )
+  )
+}
+
+
+calc_sig_change_pain_interference <- function(df) {
+  df <- df %>% dplyr::mutate(
+    change_pain_interference = end_bpi_pain_interference - ref_bpi_pain_interference,
+    sig_change_pain_interference = dplyr::case_when(
+      is.na(change_pain_interference) |
+        ref_bpi_pain_interference < 5  ~ NA_character_,
+      (
+        abs(change_pain_interference) >= (ref_bpi_pain_interference * 0.3)
+      ) & (end_bpi_pain_severity < ref_bpi_pain_severity) ~ "yes",
+      TRUE ~ "no"
+    )
+  )
+}
+
+
+
+calc_sig_change_pain_severity <- function(df) {
+  df <- df %>% dplyr::mutate(
+    change_pain_severity = end_bpi_pain_severity - ref_bpi_pain_severity,
+    sig_change_pain_severity = dplyr::case_when(
+      is.na(change_pain_severity) |
+        ref_bpi_pain_severity < 5  ~ NA_character_,
+      (abs(change_pain_severity) >= (ref_bpi_pain_severity * 0.3)) &
+        (end_bpi_pain_severity < ref_bpi_pain_severity) ~ "yes",
+      TRUE ~ "no"
+    )
+  )
+}
+
+```
+
+Now, apply each function to the dataframe to generate the required change and benchmark status variables.
+
+```{r}
+
+clean_data<- purrr::map_dfr(list(clean_data), ~{
+  
+  calc_sig_change_depression(.x) %>% 
+  calc_sig_change_anxiety() %>% 
+  calc_sig_change_stress() %>% 
+  calc_sig_change_catastrophising() %>% 
+  calc_sig_change_self_efficacy() %>% 
+  calc_sig_change_pain_interference() %>% 
+  calc_sig_change_pain_severity()
+  
+})
+
+```
+
+Gather the data, calculate program outcomes and thereby wrangle the data for plotting:
+
+```{r}
+
+plotting_data<- clean_data %>% dplyr::select( contains("sig_change"))
+
+plotting_data_gathered<- plotting_data %>% tidyr::gather(key = "outcome", value = "sig_change_status")
+
+plotting_data_summarised<- plotting_data_gathered %>% dplyr::group_by(outcome, sig_change_status) %>% dplyr::filter(!is.na(sig_change_status)) %>% 
+  dplyr::summarise(n_cases = n()) %>% dplyr::ungroup() %>% dplyr::group_by(outcome) %>% 
+  mutate(all_cases = round(sum(n_cases))) %>% dplyr::ungroup() %>% dplyr::mutate(pct_cases = round((n_cases / all_cases) * 100), outcome = stringr::str_replace(outcome, "sig_change_", ""), sig_change_status = fct_recode(sig_change_status, "Benchmark Improvement" = "yes", "No Benchmark Improvement" = "no"))
+ 
+#It's tricky to arrange the bars when you have a stacked bar plot.The lines of code below allow us to do so
+
+reordered_levels<- filter(plotting_data_summarised, sig_change_status == "Benchmark Improvement") %>% arrange(desc(pct_cases)) %>% dplyr::pull(outcome)
+
+
+plotting_data_summarised<- plotting_data_summarised %>% dplyr::mutate(
+  outcome = forcats::fct_relevel(outcome, reordered_levels)
+   )
+
+#Have a look
+
+plotting_data_summarised
+
+```
+
+Finally, plot the outcomes:
+
+```{r}
+p<- ggplot(plotting_data_summarised, aes(x = outcome, y = pct_cases, fill = sig_change_status, 
+                                     text = paste0("Number of Patients Showing ", sig_change_status, ": ", n_cases,  "<br>",
+                                                  "Total Sample Size (Symptomatic Patients): ", all_cases))) + 
+  geom_col() + geom_text(aes(label = paste0(pct_cases, "%")), position = position_stack(vjust = 0.5), size = 4) + 
+  theme(panel.grid.minor.y = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_blank()
+  ) + ylab("Percentage of Symptomatic Patients") + xlab("Outcome") +
+  labs(fill = "Achieved Benchmark Improvement")  + 
+  theme(legend.position = "bottom", legend.title = element_blank()) + coord_flip()
+
+
+ggplotly(p, tooltip = "text") %>% layout(legend = list(orientation = "h", x = 0.4, y = -0.2))
+
+```
+
+Don't forget to hover over the plot to access info contained in the tooltip!
+
+<body class = "blue">
+
+
+</body>
