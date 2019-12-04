@@ -34,11 +34,14 @@ library(naniar)
 library(plotly)
 library(stringr)
 library(forcats)
+library(correlationfunnel)
+library(magrittr)
 
 ```
 
-In this article, I programatically generate interactive scatterplots using the persistent pain dataset that I imported and cleaned in earlier posts. 
+In this article, I programatically generate interactive scatterplots using the persistent pain dataset that I imported and cleaned in earlier posts. I want to explore relationships between features to guide subsequent modelling. 
 
+First import the data:
 
 ```{r}
 
@@ -46,15 +49,85 @@ clean_data<- readRDS("clean_data.rds")
 
 ```
 
-I select variables of interest for exploratory analyses.
+Then make things more manageable by reducing the dataset down to variables of interest for exploratory analyses.
 
 ```{r}
-vars_of_interest<-  dplyr::select(clean_data, patient_id, sex, ref_hsugp, ref_hsu_allied_health, ref_hsu_specialist, ref_hsu_hospital, ref_hsued, ref_unemployed_pain, ref_daily_morphine, ref_bpi_work, ref_hsu_diagnostic_tests, ref_opioid_freq, ref_full_time, ref_bpi_relations, ref_pcs_total, ref_pseq_total, ref_pcs_helplessness, ref_pcs_magnification,
-ref_pcs_rumination, ref_bpi_sleep, ref_bpi_average, ref_weight, ref_dass_depression,
+vars_of_interest<-  dplyr::select(clean_data, patient_id, sex, ref_hsugp, ref_hsu_allied_health, ref_hsu_specialist, ref_hsu_hospital, ref_hsued, ref_unemployed_pain, ref_daily_morphine, ref_bpi_work, ref_hsu_diagnostic_tests, ref_opioid_freq, ref_full_time, ref_bpi_relations, ref_pcs_total, ref_pseq_total, ref_pcs_helplessness, ref_pcs_magnification, ref_pcs_rumination, ref_bpi_sleep, ref_bpi_average, ref_bpi_pain_severity, ref_weight, ref_dass_depression,
 ref_dass_anxiety, ref_dass_stress, pain_duration)
 ```
 
-The `ggpairs()` function from **GGally** creates a matrix of scatterplots, based on the columns that are passed to it. But the function is not very helpful if you have a large number of numeric variables and your computer will probably crash in the process.
+I am particularly interested in the outcomes of sleep disturbance and pain self-efficacy (confidence to perform a range of daily activities despite pain). So I write my own function based upon functions within the **corrr** package to quickly identify the correlates of my sleep disturbance and pain self-efficacy variables. 
+
+```{r}
+
+find_correlations<- function(df) {
+  
+  numeric_data<- dplyr::select_if(df, is.numeric)
+  
+  numeric_var_names<- rlang::syms(names(numeric_data))
+  
+  correlations<- corrr::correlate(numeric_data)
+  
+  correlation_by_var_list<- purrr::map(numeric_var_names, ~{corrr::focus(correlations, !!.x) %>% 
+      dplyr::filter(!!.x >= 0.3 | !!.x <= -0.3) %>% dplyr::arrange(desc(!!.x))})
+  
+  corelation_by_var_list<- correlation_by_var_list %>% purrr::set_names(names(numeric_data))
+}
+
+```
+
+Call `find_correlations()` to generate a list of of correlations greater than 0.3 for all my variables of interest.
+
+```{r}
+#Make the list of  correlations > 0.3 by variable.
+
+corr_by_var<- find_correlations(vars_of_interest)
+```
+
+Subset the list to pluck out my interesting variables.
+
+First, sleep disturbance:
+
+```{r}
+corr_by_var[["ref_bpi_sleep"]]
+```
+
+The highest raw correlation tells us that people who report greater sleep disturbance also tend to report worse relationship dynamics due to pain. Makes sense.
+
+Now I look at the correlates of pain self-efficacy
+
+```{r}
+corr_by_var[["ref_pseq_total"]]
+```
+
+Curiously, the high raw correlation suggests that people whose relationships are more impacted by pain tend to have lower confidence to perform daily activities in the presence of pain!
+
+I can also use the **correlationfunnel** package to help with identifying features for modelling. First, I need to impute missing values, which I can do easily with **naniar**.
+
+```{r}
+imputed_vars<- vars_of_interest %>% dplyr::select(-patient_id) %>% naniar::impute_median_if(is.numeric) 
+```
+
+Then I create a feature set of binary variables:
+
+```{r}
+binarized_vars<- imputed_vars %>% correlationfunnel::binarize(n_bins = 5, thresh_infreq = 0.01, name_infreq = "OTHER", one_hot = TRUE)
+
+#Have a look
+
+dplyr::glimpse(binarized_vars)
+
+```
+
+Finally, I create a correlation funnel plot to show which features are most correlated with the target outcome (pain-self-efficacy).
+
+```{r}
+binarized_vars %>% correlationfunnel::correlate(ref_pseq_total__35_Inf) %>% correlationfunnel::plot_correlation_funnel()
+```
+
+Features at the top of the plot are the most related to pain self-efficacy. We can see by the right outward curve, patients with lower levels of depression, relationship disruption (due to pain), stress, hopelessness, sleep disturbance (and a few related constructs) have greater confidence to perform daily activities in the presence of pain! People who have only had pain 3-5 months also have higher pain self-efficacy than others. 
+
+To make sure that we are not being misled by raw numbers, it is important to plot the variables of interest.`ggpairs()` from the **GGally** package creates a matrix of scatterplots, based on the columns that are passed to it. Unfortunately, this function is not very helpful if you have many numeric variables and your computer may even in the process.
 
 With large datasets, I think it can be helpful to create a named list of scatterplots, the elements of which can be scrolled through (using the R Studio viewer for example) or selected based on the name of the variable in question. 
 
@@ -107,17 +180,17 @@ show_all_scatterplots<- function(df) {
 }
 ```
 
-Look at the relationship between depression and chronic pain-related relationship problems
+Following from our correlation analysis, let's look at the relationship between pain self-efficacy pain severity.
 
 ```{r}
 
 scatter_by_var<- show_all_scatterplots(vars_of_interest)
 
-scatter_by_var[["ref_bpi_relationsANDref_dass_depression"]]
+scatter_by_var[["ref_bpi_pain_severityANDref_pseq_total"]]
 
 ```
 
-Sometimes, we also want to look at subgroups within scatterplots. Doing so is important to avoid Simpson's Paradox!
+The scatterplot is informative, but it would be good to take subgroups into account. Doing so is important to avoid Simpson's Paradox!
 
 The code for dynamically creating grouped scatterplots is shown below:
 
@@ -217,17 +290,16 @@ show_all_scatterplots_grouped<- function(df, point_identifier,
 
 ```
 
-Look at the relationship between pain intensity and stress, based on the duration of chronic pain
+Let's look at the relationship between pain self-efficacy and pain severity based on pain duration.
 
 ```{r}
 grouped_scatterplots<- show_all_scatterplots_grouped(vars_of_interest, point_identifier = patient_id, grouping_variable = pain_duration)
 
-grouped_scatterplots[["ref_dass_stressANDref_bpi_average"]]
+grouped_scatterplots[["ref_pseq_totalANDref_bpi_pain_severity"]]
 
 ```
 
-Hope this is helpful, feel free to reach out and let me know your thoughts.
-
+Look at how the relationship between pain severity and confidence to perform activities almost disappears for people who have only had pain a few months. But we also notice that this is based on a small sample size of only 8 patients — preventing any definitive conclusions.
 
 <body class = "blue">
 
