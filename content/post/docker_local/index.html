@@ -1,0 +1,53 @@
+---
+title: "Getting Started With R and Docker"
+author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
+date: '2019-12-11'
+categories:
+  - Docker
+tags:
+  - Docker
+output:
+  blogdown::html_page:
+    toc: no
+---
+
+
+
+<style>
+body.blue { background-color:#659dbd;}
+</style>
+<p>In this post I demonstrate how to deploy a Shiny app to your local browser using Docker. By stepping through this process, I pave the way for more complex deployments and hosting solutions.</p>
+<p>To begin, create a project folder on my local drive</p>
+<pre class="zsh"><code>
+mkdir rocker_proj
+</code></pre>
+<p>Then retrieve the <code>rocker\shiny-verse</code> image from Dockerhub.</p>
+<pre class="zsh"><code>
+docker pull rocker\shiny-verse
+</code></pre>
+<p>Check that the image is showing up locally</p>
+<pre class="zsh"><code>
+docker image ls
+</code></pre>
+<pre><code>## REPOSITORY                      TAG                 IMAGE ID            CREATED             SIZE
+## rocker/shiny-verse              latest              94490fbd4d3b        6 days ago          1.86GB
+## mysql                           latest              d435eee2caa5        2 weeks ago         456MB
+## nginx                           latest              231d40e811cd        2 weeks ago         126MB
+## bretfisher/jekyll-serve         latest              144799b59c39        5 months ago        269MB
+## openanalytics/shinyproxy-demo   latest              9a83d7d80ebf        10 months ago       925MB
+## postgres                        9.6.2               b3b8a2229953        2 years ago         267MB
+## postgres                        9.6.1               4023a747a01a        2 years ago         265MB</code></pre>
+<p>Yes!</p>
+<p>Now spin up a container using the image I just downloaded:</p>
+<pre class="zsh"><code>
+docker container run --rm -p 3838:3838 -v /Users/timothyjamesdeitz/rocker_proj/srv/shinyapps/:/srv/shiny-server/ -v /Users/timothyjamesdeitz/rocker_proj/srv/shinylog/:/var/log/shiny-server/ rocker/shiny-verse
+</code></pre>
+<p>The -v flag refers to a volume. Volumes let the container access local files on the host. Here I specify two volumes, which share an overarching directory <code>srv</code>. One of the volumes will contain the app itself, <code>/Users/timothyjamesdeitz/rocker_proj/srv/shinyapps/</code>, and the other will contain the app logs <code>/Users/timothyjamesdeitz/rocker_proj/srv/shinylog/:/var/log/shiny-server/</code>. As specified on the Dockerhub page, the container should run on port 3838, so I indicate this above. I also ensure that the container will be destroyed as soon as we take it down, using the <code>--rm</code> flag. The last part of the call <code>rocker/shiny-verse</code> refers to the name of the image itself. It is important to note that the shell prompt will be unavailable while the container is running. To solve this, I could have run the container in the background, using the <code>-d</code> flag.</p>
+<p>Next, I create a new R Studio Project (a shiny app) inside the <code>/shinyapps/</code> subfolder.</p>
+<p><img src="new_proj.png" /></p>
+<p>Finally, I head to the browser and check that the app is appearing:</p>
+<p><img src="app_working.png" /></p>
+<p>That’s all there is to it!</p>
+<p>Also notice that because I created a volume, I can edit the app code itself and changes will immediately show up in the browser. For example, you can see that I’ve boldened and italicised the slider label (it wasn’t like that originally).</p>
+<body class="blue">
+</body>
