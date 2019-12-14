@@ -22,9 +22,9 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE, out.width = '
 
 ```
 
-In this post, I demonstrate how encode files need for my Shiny app within a custom Dockerfile. So, rather than building a container with a pre-existing Docker image, I make my own custom image.
+In this post, I demonstrate how to copy files required for my Shiny app into a custom Docker image.
 
-Start by examining which images I have stored on my machine: 
+I start by examining which images I have stored on my machine: 
 
 ```{zsh, eval = FALSE}
 
@@ -67,6 +67,7 @@ The Dockerfile is blank when I open it. I add the following content, which is ex
 cat Dockerfile
 
 ```
+
 All dockerfiles need to begin with the `FROM` instruction. This instruction indicates the parent image from which you are building. The `WORKDIR` command sets the working directory for any `RUN`, `CMD`, `ENTRYPOINT`, `COPY` and `ADD` instructions that come after it in the dockerfile.
 The `COPY` instruction copies new files or directories from the source (i.e. the host) and adds them to the filesystem of the container. You can specify the path of the source but otherwise, this path will be taken from the build context (i.e. the folder you are in when you build the container). In this example, I am in the `rocker_proj` folder. From within this folder, the path to the `www` folder containing my stylesheet will be `/srv/shinyapps/example_app/www/`. We already know that within the container, the working directory is `/srv/shiny-server/`. When I add `example_app/www/` as the destination, these directories will be created with in the container as subdirectories of the working directory. Note that there is no `/` before the destination path — this ensures that Docker will treat it as a relative path (relative to `WORKDIR`) and not an absolute path.
 
