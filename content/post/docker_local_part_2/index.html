@@ -1,0 +1,79 @@
+---
+title: "Making A Custom Dockerfile To Host A Shiny App"
+author: Timothy Deitz, Clinical Psychologist & Data Science Consultant
+date: '2019-12-14'
+categories:
+  - Docker
+tags:
+  - Docker
+output:
+  blogdown::html_page:
+    toc: no
+---
+
+
+
+<style>
+body.blue { background-color:#659dbd;}
+</style>
+<p>In this post, I demonstrate how encode files need for my Shiny app within a custom Dockerfile. So, rather than building a container with a pre-existing Docker image, I make my own custom image.</p>
+<p>Start by examining which images I have stored on my machine:</p>
+<pre class="zsh"><code>
+docker image ls
+</code></pre>
+<pre class="zsh"><code>
+REPOSITORY                      TAG                 IMAGE ID            CREATED             SIZE
+rocker/shiny-verse              latest              94490fbd4d3b        9 days ago          1.86GB
+mysql                           latest              d435eee2caa5        3 weeks ago         456MB
+nginx                           latest              231d40e811cd        3 weeks ago         126MB
+bretfisher/jekyll-serve         latest              144799b59c39        5 months ago        269MB
+openanalytics/shinyproxy-demo   latest              9a83d7d80ebf        10 months ago       925MB
+postgres                        9.6.2               b3b8a2229953        2 years ago         267MB
+postgres                        9.6.1               4023a747a01a        2 years ago         265MB
+</code></pre>
+<p>As you can see, the <code>rocker/shiny-verse</code> image is available from when I last pulled it from Dockerhub.</p>
+<p>Now I’m going to make a new Dockerfile that hardcodes the styling of my Shiny app. Normally the css stylesheet for a Shiny app is stored in a <code>www</code> folder, which is situated in the same directory as your app files.</p>
+<p>Below, I navigate to the root of the folder in which my Shiny app is contained and create the Dockerfile.</p>
+<pre class="zsh"><code>
+cd rocker_proj
+
+touch Dockerfile
+</code></pre>
+<p>The Dockerfile is blank when I open it. I add the following content, which is explained below:</p>
+<pre class="zsh"><code>
+cat Dockerfile
+</code></pre>
+<pre><code>## FROM rocker/shiny-verse
+## 
+## WORKDIR /srv/shiny-server/
+## 
+## COPY /srv/shinyapps/example_app/www/ example_app/www/</code></pre>
+<p>All dockerfiles need to begin with the <code>FROM</code> instruction. This instruction indicates the parent image from which you are building. The <code>WORKDIR</code> command sets the working directory for any <code>RUN</code>, <code>CMD</code>, <code>ENTRYPOINT</code>, <code>COPY</code> and <code>ADD</code> instructions that come after it in the dockerfile.
+The <code>COPY</code> instruction copies new files or directories from the source (i.e. the host) and adds them to the filesystem of the container. You can specify the path of the source but otherwise, this path will be taken from the build context (i.e. the folder you are in when you build the container). In this example, I am in the <code>rocker_proj</code> folder. From within this folder, the path to the <code>www</code> folder containing my stylesheet will be <code>/srv/shinyapps/example_app/www/</code>. We already know that within the container, the working directory is <code>/srv/shiny-server/</code>. When I add <code>example_app/www/</code> as the destination, these directories will be created with in the container as subdirectories of the working directory. Note that there is no <code>/</code> before the destination path — this ensures that Docker will treat it as a relative path (relative to <code>WORKDIR</code>) and not an absolute path.</p>
+<p>According to Docker documentation, “You are strongly encouraged to use VOLUME for any mutable and/or user-serviceable parts of your image”. Thus, I wouldn’t ordinarily hardcode css styling into the image layers — because the styling is likely to need alteration over time. Rather, I should use the <code>COPY</code> instruction only for files that really aren’t likely to change.</p>
+<p>To build the image and store it locally, I run:</p>
+<pre class="zsh"><code>docker image build -t custom_rocker .</code></pre>
+<p>The <code>-t</code> flag stands for the name of the “tag” I am giving the image: in this case, “custom_rocker”. The dot <code>.</code> at the end means that the image should be built using the Dockerfile in the current folder. Also, if I wanted to push the new image to my Dockerhub repo, I would need to prefix tag with my username. So it would be `timothydeitz/custom_rocker&quot;.</p>
+<p>Finally, I build the new container, as follows:</p>
+<pre class="zsh"><code>
+docker container run --rm -p 3838:3838 -v /Users/timothyjamesdeitz/rocker_proj/srv/shinyapps/:/srv/shiny-server/ -v /Users/timothyjamesdeitz/rocker_proj/srv/shinylog/:/var/log/shiny-server/ custom_rocker
+</code></pre>
+<p>Which gives me the following output:</p>
+<pre class="zsh"><code>
+[2019-12-11T11:32:16.945] [INFO] shiny-server - Shiny Server v1.5.12.933 (Node.js v10.15.3)
+[2019-12-11T11:32:16.961] [INFO] shiny-server - Using config file &quot;/etc/shiny-server/shiny-server.conf&quot;
+[2019-12-11T11:32:17.058] [WARN] shiny-server - Running as root unnecessarily is a security risk! You could be running more securely as non-root.
+[2019-12-11T11:32:17.069] [INFO] shiny-server - Starting listener on http://[::]:3838
+[2019-12-11T11:32:58.564] [INFO] shiny-server - Created bookmark state directory: /var/lib/shiny-server/bookmarks
+[2019-12-11T11:32:58.566] [INFO] shiny-server - Created user bookmark state directory: /var/lib/shiny-server/bookmarks/shiny
+
+*** &#39;/var/log/shiny-server//example_app-shiny-20191211-113258-36645.log&#39; has been created ***
+
+*** /var/log/shiny-server//example_app-shiny-20191211-113258-36645.log ***
+
+Listening on http://127.0.0.1:36645</code></pre>
+<p>To check that the css styling has been encoded into the image itself, I remove the <code>www</code> folder from my local shiny app directory. Then I head to the browser at <code>http://localhost:3838/example_app/</code> to check it out:</p>
+<p><img src="featured.png" /></p>
+<p>Success! I now have a custom border around the side panel.</p>
+<body class="blue">
+</body>
