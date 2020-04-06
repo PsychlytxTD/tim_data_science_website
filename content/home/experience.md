@@ -27,7 +27,7 @@ date_format = "Jan 2006"
   description = """
   Overview:
   
-  Psychlytx is an emerging startup that provides innovative data science and analytics services in the mental health space.
+Psychlytx is an developing startup that provides innovative data science and analytics services in the mental health space.
 
 As co-founder and data scientist with Psychlytx I have:
 
